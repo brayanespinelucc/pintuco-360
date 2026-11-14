@@ -115,7 +115,7 @@ def test_dark_theme_switch_does_not_change_api_or_role(api):
     app.toggle[0].set_value(True).run()
     assert not app.exception
     assert ("GET", "/auth/me") in received
-    assert any("cl-theme-dark" in item.value for item in app.markdown)
+    assert app.session_state["cl_dark"] is True
     assert all(method == "GET" for method, path in received)
 
 
@@ -160,3 +160,27 @@ def test_inspector_queue_and_history_use_the_same_authorized_read_api(api):
     assert not app.exception
     assert ("GET", "/calidad/expedientes") in received
     assert ("GET", "/calidad/bandeja") not in received
+
+
+def test_design_css_is_emitted_as_html_not_raw_markdown(monkeypatch):
+    """Regression: a Markdown parser must never display the CSS as page text."""
+    from frontend import design
+
+    emitted_html = []
+    monkeypatch.setattr(design.st, "html", lambda value: emitted_html.append(value))
+
+    def no_markdown_for_css(*args, **kwargs):
+        raise AssertionError("Do not inject <style> through st.markdown.")
+
+    monkeypatch.setattr(design.st, "markdown", no_markdown_for_css)
+    design.apply_design_system(False)
+    assert len(emitted_html) == 1
+    assert '<style>' in emitted_html[0] and '</style>' in emitted_html[0]
+    assert 'id="cl-theme-light"' in emitted_html[0]
+    assert '[data-testid="stApp"]' in emitted_html[0]
+    assert '--cl-bg: #F5F7FB;' in emitted_html[0]
+    emitted_html.clear()
+    design.apply_design_system(True)
+    assert len(emitted_html) == 1
+    assert 'id="cl-theme-dark"' in emitted_html[0]
+    assert '--cl-bg: #0A1221;' in emitted_html[0]
