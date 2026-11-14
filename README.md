@@ -85,3 +85,7 @@ El especialista puede leer el historial y resolver el caso. [Guía RF-05.1](docs
 ## RF-06 — Logística académica
 
 Módulo de operaciones para una cuenta con rol `logistica`: bandeja de solicitudes aprobadas, reserva FEFO de lotes, preparación, despacho simulado, cancelación y auditoría. El cliente ve sus órdenes en **Seguimiento logístico**. El despacho descuenta únicamente envases del catálogo DEMOSTRATIVO guardados en el Supabase académico; no implica movimientos físicos ni uso de existencias reales. Véase [docs/RF06_LOGISTICS.md](docs/RF06_LOGISTICS.md) para crear la tercera cuenta de logística y probarlo.
+
+## RF-07 — Ejecución en campo
+
+El área logística asigna solicitudes despachadas a un usuario `aplicador`; este registra inicio, avances, incidencias, fotografías privadas y finalización al 100 %. La solicitud pasa a `en_calidad` y queda pendiente de RF-08. El cliente consulta únicamente sus propios trabajos en **Aplicación en campo**. Datos y actividades son **académicos y simulados**. [Guía de RF-07](docs/RF07_FIELD_EXECUTION.md).
