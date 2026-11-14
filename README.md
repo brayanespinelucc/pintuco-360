@@ -4,7 +4,7 @@ Plataforma académica de gestión de solicitudes de recubrimientos, asesoría t�
 
 ## Estado actual
 
-**Fase 1: base técnica inicial.** Esta rama incluye una API FastAPI con endpoint de salud y autenticación contra Supabase Auth, una pantalla de ingreso Streamlit y un esquema de perfiles con roles. **No están implementados todavía los 15 procesos del negocio** ni la integración con Gemini, n8n o inventarios. Consulta [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md).
+**Fase 2: RF-01 Captura de solicitudes.** Se incluye API FastAPI con autenticación Supabase, interfaz Streamlit con registro de empresa, proyectos, solicitudes y carga privada de fotografías. **Los demás procesos de la cadena operativa todavía no están implementados** (Gemini, motor técnico, inventario, cotización, logística, calidad y analítica). Consulta [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md). Consulta [docs/IMPLEMENTATION_STATUS.md](docs/IMPLEMENTATION_STATUS.md).
 
 ## Tecnologías
 
@@ -17,7 +17,7 @@ Plataforma académica de gestión de solicitudes de recubrimientos, asesoría t�
 
 1. Copia el ejemplo: \`cp .env.example .env\`.
 2. Crea un proyecto Supabase y coloca \`SUPABASE_URL\` y \`SUPABASE_ANON_KEY\` en \`.env\` (la clave **anon/publishable**, nunca \`service_role\`).
-3. Ejecuta [database/migrations/0001_profiles.sql](database/migrations/0001_profiles.sql) en el editor SQL de Supabase.
+3. Las migraciones [0001_profiles.sql](database/migrations/0001_profiles.sql), [0002_rf01_capture.sql](database/migrations/0002_rf01_capture.sql) y [0003_storage_delete_cleanup.sql](database/migrations/0003_storage_delete_cleanup.sql) **ya están aplicadas al proyecto Supabase vinculado**. En una instancia nueva, deben aplicarse en este orden una sola vez.
 4. Ejecuta \`docker compose up --build\`.
 5. Visita \`http://localhost:8501\` (portal) y \`http://localhost:8000/docs\` (API).
 6. Crea usuarios de prueba con Supabase Auth. El perfil se crea automáticamente con rol \`cliente\`. Para asignar un rol distinto utiliza el editor SQL con un administrador.
@@ -48,6 +48,7 @@ python -m compileall -q backend frontend
 - [Instrucciones para el agente de desarrollo](PROMPT_MAESTRO.md)
 - [Arquitectura inicial](docs/ARCHITECTURE.md)
 - [15 etapas obligatorias](docs/REQUIREMENTS.md)
+- [RF-01: formulario y pruebas manuales](docs/RF01_CAPTURE.md)
 - [Estado de implementación](docs/IMPLEMENTATION_STATUS.md)
 
 **Seguridad:** No subas secretos ni datos reales de clientes a Git. Las claves se configuran mediante variables de entorno.
