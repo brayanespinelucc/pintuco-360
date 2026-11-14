@@ -81,3 +81,7 @@ El asesor/especialista puede examinar información de la solicitud, Gemini, el m
 En la pestaña **Revisión técnica**, el cliente puede contestar la solicitud de información del especialista.
 La respuesta se almacena y devuelve el caso a `en_revision_tecnica` sin reescribir los datos ni cálculos anteriores.
 El especialista puede leer el historial y resolver el caso. [Guía RF-05.1](docs/RF05_REVIEW.md).
+
+## RF-06 — Logística académica
+
+Módulo de operaciones para una cuenta con rol `logistica`: bandeja de solicitudes aprobadas, reserva FEFO de lotes, preparación, despacho simulado, cancelación y auditoría. El cliente ve sus órdenes en **Seguimiento logístico**. El despacho descuenta únicamente envases del catálogo DEMOSTRATIVO guardados en el Supabase académico; no implica movimientos físicos ni uso de existencias reales. Véase [docs/RF06_LOGISTICS.md](docs/RF06_LOGISTICS.md) para crear la tercera cuenta de logística y probarlo.
