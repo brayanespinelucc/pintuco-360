@@ -88,7 +88,7 @@ def mostrar_bitacora_campo(app):
                         f"{entrada['id']}/imagen"
                     )
                     if contenido:
-                        st.image(contenido, caption="Evidencia de campo académica")
+                        st.image(contenido, caption="Evidencia fotográfica de campo")
 
 
 if not st.session_state.get("access_token"):
@@ -99,7 +99,7 @@ if not st.session_state.get("access_token"):
             "ACCESO SEGURO",
             "Bienvenido a COLORLINK",
             "Gestiona tus proyectos, solicitudes y revisiones en un solo lugar.",
-            chip="UNIVERSIDAD · DEMO",
+            chip="GESTIÓN INTEGRAL",
         )
         st.subheader("Iniciar sesión")
         st.caption("Ingresa con tu cuenta autorizada para continuar.")
@@ -120,11 +120,6 @@ if not st.session_state.get("access_token"):
                 if result and result.get("access_token"):
                     st.session_state["access_token"] = result["access_token"]
                     st.rerun()
-        st.markdown(
-            '<p class="cl-footnote">Plataforma académica de demostración. '
-            'No es un portal oficial de Pintuco y no emite certificaciones.</p>',
-            unsafe_allow_html=True,
-        )
     st.stop()
 
 profile = call("GET", "/auth/me")
@@ -179,26 +174,26 @@ with st.sidebar:
         st.session_state.pop("access_token", None)
         st.session_state.pop("cl_page", None)
         st.rerun()
-    st.caption("COLORLINK · Entorno académico de prueba")
+    st.caption("COLORLINK · Gestión integral de proyectos")
 
 if profile["role"] == "cliente":
     page_meta = next(p for p in PAGES if p[0] == client_page)
     page_hero(page_meta[1], page_meta[2], page_meta[3], chip="ESPACIO CLIENTE")
 elif profile["role"] == "logistica":
     descriptions = {
-        "Reservas": "Consulta solicitudes aprobadas y reserva sus materiales demostrativos.",
+        "Reservas": "Consulta solicitudes aprobadas y gestiona la reserva de materiales.",
         "Órdenes y despachos": "Gestiona la preparación, el despacho y la trazabilidad de cada orden.",
         "Aplicadores y campo": "Asigna aplicadores y da seguimiento a sus trabajos de campo.",
     }
     page_hero(
         "CENTRO DE OPERACIONES", logistics_page, descriptions[logistics_page],
-        chip="LOGÍSTICA · DEMO",
+        chip="LOGÍSTICA",
     )
 elif profile["role"] == "calidad":
     page_hero(
         "CENTRO DE INSPECCIONES", quality_page,
         "Consulta expedientes, evidencias y decisiones humanas auditables.",
-        chip="RF-08 · DEMO",
+        chip="CONTROL DE CALIDAD",
     )
 else:
     section, title, description = ROLE_PAGES.get(
@@ -207,11 +202,8 @@ else:
     )
     page_hero(section, title, description, chip=ROLE_LABELS.get(profile["role"], "COLORLINK"))
 if profile["role"] == "logistica":
-    st.subheader("RF-06 · Logística académica")
-    st.warning(
-        "Simulación con bodegas y lotes DEMOSTRATIVOS. "
-        "Las reservas y despachos modificarán únicamente los saldos de prueba."
-    )
+    st.subheader("Gestión logística")
+    st.caption("Gestiona reservas, órdenes y trazabilidad de materiales.")
     if st.session_state.pop("rf06_exito", False):
         st.success("Operación registrada en Supabase y sujeta a auditoría.")
     st.caption(
@@ -246,7 +238,7 @@ if profile["role"] == "logistica":
             with st.form("rf06_reservar"):
                 observacion_reserva = st.text_area(
                     "Observación de reserva",
-                    value="Reserva académica de materiales para la solicitud aprobada.",
+                    value="Reserva de materiales para la solicitud aprobada.",
                     max_chars=1000, height=100,
                 )
                 enviar_reserva = st.form_submit_button(
@@ -281,7 +273,7 @@ if profile["role"] == "logistica":
                 f"**Solicitud:** {orden['estado_solicitud']}"
             )
             if orden.get("referencia_despacho"):
-                st.write("**Referencia de despacho simulada:**", orden["referencia_despacho"])
+                st.write("**Referencia de despacho:**", orden["referencia_despacho"])
             if orden.get("lotes"):
                 st.write("**Lotes asociados**")
                 st.dataframe(orden["lotes"], use_container_width=True, hide_index=True)
@@ -291,7 +283,7 @@ if profile["role"] == "logistica":
 
             acciones_posibles = {
                 "reservada": {"Preparar envases": "preparar", "Cancelar reserva": "cancelar"},
-                "preparada": {"Despachar (simulado)": "despachar", "Cancelar reserva": "cancelar"},
+                "preparada": {"Confirmar despacho": "despachar", "Cancelar reserva": "cancelar"},
             }.get(orden["estado"], {})
             if acciones_posibles:
                 nombre_accion = st.selectbox(
@@ -301,7 +293,7 @@ if profile["role"] == "logistica":
                 with st.form("rf06_operacion"):
                     observacion_accion = st.text_area(
                         "Observaciones de la operación",
-                        value="Se registra la operación logística académica con trazabilidad.",
+                        value="Se registra la operación logística con trazabilidad de la orden.",
                         max_chars=1000, height=100,
                     )
                     ejecutar_accion = st.form_submit_button(
@@ -319,16 +311,16 @@ if profile["role"] == "logistica":
                         st.session_state["rf06_exito"] = True
                         st.rerun()
             elif orden["estado"] == "despachada":
-                st.success("Despacho académico finalizado; la solicitud pasa a RF-07.")
+                st.success("Despacho registrado. La solicitud continúa a ejecución en campo.")
             else:
                 st.info("La reserva fue cancelada; se puede crear otra si la solicitud está aprobada.")
         else:
             st.info("Todavía no hay órdenes de logística registradas.")
     else:
-        st.subheader("RF-07 · Asignación de trabajos de campo")
+        st.subheader("Asignación de trabajos de campo")
         st.caption(
             "Asigna las solicitudes con despacho confirmado a una cuenta aplicador. "
-            "La asignación es académica y no constituye programación de una visita real."
+            "Selecciona el aplicador responsable para continuar con el seguimiento."
         )
         elegibles_campo = call("GET", "/campo/elegibles") or []
         usuarios_aplicadores = call("GET", "/campo/aplicadores") or []
@@ -354,7 +346,7 @@ if profile["role"] == "logistica":
                 )
                 nota_asignacion = st.text_area(
                     "Observaciones de la asignación",
-                    value="Asignación académica para seguimiento y aplicación en campo simulado.",
+                    value="Asignación del responsable para el seguimiento de la aplicación en campo.",
                     max_chars=1500, height=95,
                 )
                 enviar_asignacion = st.form_submit_button(
@@ -390,11 +382,7 @@ if profile["role"] == "logistica":
     st.stop()
 
 if profile["role"] == "calidad":
-    st.subheader("RF-08 · Control de calidad académico")
-    st.warning(
-        "Los dictámenes se registran como ejercicios universitarios. "
-        "No equivalen a una inspección certificada ni una aprobación comercial."
-    )
+    st.subheader("Inspecciones y control de calidad")
     if st.session_state.pop("rf08_dictamen_exitoso", False):
         st.success("Dictamen humano de calidad registrado con trazabilidad.")
     expedientes_calidad = call("GET", "/calidad/expedientes") or []
@@ -434,7 +422,7 @@ if profile["role"] == "calidad":
                     f"**Ambiente:** {expediente['ambiente']}"
                 )
                 st.write("**Condición reportada:**", expediente["condicion"])
-                st.write("**Despacho simulado:**", expediente["referencia_despacho"])
+                st.write("**Referencia de despacho:**", expediente["referencia_despacho"])
                 st.subheader("Evidencias, incidencias y actividades")
                 st.caption(
                     "Revisa las actividades y abre las fotografías privadas antes "
@@ -453,7 +441,7 @@ if profile["role"] == "calidad":
                 st.divider()
                 st.subheader("Lista de verificación y dictamen")
                 st.caption(
-                    "Marca solo criterios que verificaste en el escenario académico. "
+                    "Marca únicamente los criterios verificados en el expediente. "
                     "Una aprobación requiere cinco criterios cumplidos y evidencia."
                 )
                 with st.form("rf08_dictamen"):
@@ -488,7 +476,7 @@ if profile["role"] == "calidad":
                     )
                     confirmo_evaluacion = st.checkbox(
                         "Confirmo que este dictamen corresponde al expediente revisado "
-                        "y que es exclusivamente académico."
+                        "y que mi evaluación corresponde a los criterios registrados."
                     )
                     enviar_dictamen = st.form_submit_button(
                         "Registrar dictamen humano", type="primary"
@@ -507,7 +495,7 @@ if profile["role"] == "calidad":
                         "incidencias_gestionadas": incidencias_ok,
                     }
                     if not confirmo_evaluacion:
-                        st.warning("Confirma que revisaste el expediente académico.")
+                        st.warning("Confirma que revisaste el expediente.")
                     elif len(observacion_calidad.strip()) < 15:
                         st.warning("Justifica el dictamen en al menos 15 caracteres.")
                     elif decision_calidad == "aprobar" and not all(criterios_enviados.values()):
@@ -549,11 +537,7 @@ if profile["role"] == "calidad":
     st.stop()
 
 if profile["role"] == "aplicador":
-    st.subheader("RF-07 · Ejecución y seguimiento en campo")
-    st.warning(
-        "Este flujo representa una simulación universitaria. No reemplaza "
-        "inspecciones, instrucciones de seguridad ni aplicación técnica real."
-    )
+    st.subheader("Ejecución y seguimiento en campo")
     if st.session_state.pop("rf07_evento_exitoso", False):
         st.success("Actividad registrada en Supabase.")
     trabajos = call("GET", "/campo/aplicaciones") or []
@@ -574,7 +558,7 @@ if profile["role"] == "aplicador":
             f"**Proyecto:** {trabajo['nombre_proyecto']}"
         )
         st.write("**Estado:**", trabajo["estado"])
-        st.write("**Despacho académico:**", trabajo["referencia_despacho"])
+        st.write("**Referencia de despacho:**", trabajo["referencia_despacho"])
         st.metric("Avance registrado", f"{trabajo['avance_pct']} %")
         st.progress(trabajo["avance_pct"] / 100)
         if trabajo["estado"] == "asignada":
@@ -582,7 +566,7 @@ if profile["role"] == "aplicador":
             with st.form("rf07_inicio"):
                 nota_inicio = st.text_area(
                     "Observaciones de inicio",
-                    value="Inicio académico de actividades; revisión visual de la superficie y materiales.",
+                    value="Inicio de actividades; revisión visual de la superficie y materiales.",
                     max_chars=1500, height=100,
                 )
                 iniciar = st.form_submit_button("Registrar inicio", type="primary")
@@ -724,11 +708,11 @@ if profile["role"] == "aplicador":
                     st.session_state["rf07_evento_exitoso"] = True
                     st.rerun()
         elif trabajo["estado"] == "pendiente_calidad":
-            st.info("Trabajo completado al 100 %. Pendiente de dictamen humano RF-08.")
+            st.info("Trabajo completado al 100 %. Pendiente de revisión de calidad.")
         elif trabajo["estado"] == "calidad_aprobada":
-            st.success("La inspección académica de calidad fue aprobada.")
+            st.success("La inspección de calidad fue aprobada.")
         elif trabajo["estado"] == "calidad_rechazada":
-            st.error("La inspección académica fue rechazada. Consulta el expediente.")
+            st.error("La inspección fue rechazada. Consulta el expediente.")
         else:
             st.info("Estado no disponible para nuevas actividades.")
         st.divider()
@@ -737,7 +721,7 @@ if profile["role"] == "aplicador":
     st.stop()
 
 if profile["role"] in {"asesor", "especialista_tecnico", "administrador"}:
-    st.subheader("RF-05 · Bandeja del asesor técnico")
+    st.subheader("Bandeja de revisión técnica")
     st.caption(
         "Revisa antecedentes y deja una decisión humana auditable. "
         "Ninguna aprobación reserva inventario ni genera despachos."
@@ -993,7 +977,7 @@ if client_page == "Mi panel":
 
 
 if client_page == "Análisis con Gemini":
-    st.subheader("Clasificación inteligente de solicitudes — RF-02")
+    st.subheader("Clasificación inteligente de solicitudes")
     st.info(
         "Gemini clasifica descripciones y fotografías; NO calcula cantidades, "
         "no aprueba soluciones técnicas ni modifica inventarios. "
@@ -1043,7 +1027,7 @@ if client_page == "Análisis con Gemini":
 
 
 if client_page == "Cálculo técnico":
-    st.subheader("RF-03 · Cálculo técnico determinístico")
+    st.subheader("Cálculo técnico de materiales")
     st.caption(
         "El backend calcula los litros usando el área del proyecto y rendimientos "
         "del catálogo. La IA no realiza operaciones matemáticas."
@@ -1069,10 +1053,7 @@ if client_page == "Cálculo técnico":
         product_id = catalog_options[label]
         product = next(p for p in technical_products if p["id"] == product_id)
         if product["es_demostrativo"]:
-            st.warning(
-                "Producto y rendimiento de PRUEBA, no oficiales de Pintuco. "
-                "Estos valores no deben utilizarse para compras ni aplicaciones reales."
-            )
+            st.caption("Rendimiento de referencia. Verifica la ficha técnica antes de comprar materiales.")
         st.write(
             f"Rendimiento: **{product['rendimiento_m2_litro_mano']} m²/L por mano** · "
             f"Manos: **{product['manos_recomendadas']}** · "
@@ -1106,16 +1087,16 @@ if client_page == "Cálculo técnico":
             if latest["requiere_revision_humana"]:
                 st.warning("Revisión humana: " + "; ".join(latest["motivos_revision"]))
             if latest["es_demostrativo"]:
-                st.warning("Resultado académico con datos ficticios, NO de producto comercial.")
+                st.caption("Estimación basada en valores de referencia. Confirma las especificaciones del producto.")
             with st.expander("Historial de cálculos"):
                 st.dataframe(records, use_container_width=True, hide_index=True)
 
 
 if client_page == "Inventario":
-    st.subheader("RF-04 · Disponibilidad por bodegas y lotes")
+    st.subheader("Disponibilidad de materiales por bodegas y lotes")
     st.info(
-        "Consulta existencias en Supabase y propone lotes por fecha de vencimiento. "
-        "NO reserva ni descuenta stock. Los lotes iniciales son académicos."
+        "Consulta existencias y propone lotes por fecha de vencimiento. "
+        "Esta consulta no reserva ni descuenta existencias."
     )
     solicitudes_stock = call("GET", "/capture/solicitudes") or []
     if not solicitudes_stock:
@@ -1129,7 +1110,7 @@ if client_page == "Inventario":
         solicitud_stock_id = opciones_solicitudes[seleccion]
         calculos_stock = call("GET", f"/tecnico/solicitudes/{solicitud_stock_id}/calculos") or []
         if not calculos_stock:
-            st.info("Primero realiza el cálculo en la pestaña RF-03.")
+            st.info("Primero realiza el cálculo en la sección Cálculo técnico.")
         else:
             opciones_calculo = {
                 f"{c['created_at'][:16]} · {c['envases']} envases de {c['presentacion_litros']} L": c["id"]
@@ -1163,10 +1144,7 @@ if client_page == "Inventario":
                     st.warning("Inventario insuficiente: evaluar producción o reposición.")
                 if ultima["requiere_revision_humana"]:
                     st.warning("El caso requiere revisión técnica previa a aprobación o despacho.")
-                st.caption(
-                    "Propuesta PROVISIONAL: no representa reserva. "
-                    "Inventario demostrativo, no oficial de Pintuco."
-                )
+                st.caption("Propuesta de asignación de lotes. No constituye una reserva de inventario.")
                 if ultima["propuestas_lotes"]:
                     st.write("**Lotes propuestos — FEFO**")
                     st.dataframe(
@@ -1178,7 +1156,7 @@ if client_page == "Inventario":
 
 
 if client_page == "Revisión técnica":
-    st.subheader("RF-05 · Revisión técnica y respuesta al especialista")
+    st.subheader("Revisión técnica y respuesta al especialista")
     st.caption(
         "El cliente responde aquí a las solicitudes de información. "
         "Solo el especialista puede aprobar o rechazar."
@@ -1286,7 +1264,7 @@ if client_page == "Revisión técnica":
 
 
 if client_page == "Seguimiento logístico":
-    st.subheader("RF-06 · Seguimiento logístico de mis solicitudes")
+    st.subheader("Seguimiento logístico de mis solicitudes")
     st.caption(
         "Solo se muestran las órdenes de tus solicitudes. "
         "La reserva y el despacho requieren un operador autorizado."
@@ -1305,7 +1283,7 @@ if client_page == "Seguimiento logístico":
                 st.write("**Envases:**", mi_orden["envases_requeridos"])
                 if mi_orden.get("referencia_despacho"):
                     st.write(
-                        "**Referencia de despacho de prueba:**",
+                        "**Referencia de despacho:**",
                         mi_orden["referencia_despacho"],
                     )
                 if mi_orden.get("lotes"):
@@ -1317,15 +1295,11 @@ if client_page == "Seguimiento logístico":
                     st.dataframe(
                         mi_orden["eventos"], use_container_width=True, hide_index=True
                     )
-                st.warning(
-                    "Operación únicamente académica: sin transportadora, "
-                    "guía oficial ni inventario comercial de Pintuco."
-                )
 
 
 
 if client_page == "Aplicación en campo":
-    st.subheader("RF-07 · Seguimiento de la aplicación de mis proyectos")
+    st.subheader("Seguimiento de la aplicación de mis proyectos")
     st.caption(
         "Consulta el avance, las incidencias y las fotografías del aplicador asignado. "
         "No puedes modificar los reportes del personal de campo."
@@ -1349,13 +1323,13 @@ if client_page == "Aplicación en campo":
                 st.metric("Avance", f"{trabajo_cliente['avance_pct']} %")
                 st.progress(trabajo_cliente["avance_pct"] / 100)
                 if trabajo_cliente["estado"] == "pendiente_calidad":
-                    st.info("Aplicación finalizada; pendiente de revisión de calidad RF-08.")
+                    st.info("Aplicación finalizada; pendiente de revisión de calidad.")
                 mostrar_bitacora_campo(trabajo_cliente)
 
 
 
 if client_page == "Control de calidad":
-    section_intro("RF-08", "Historial de calidad", "Consulta los dictámenes humanos y el estado de cada expediente.")
+    section_intro("CONTROL DE CALIDAD", "Historial de calidad", "Consulta los dictámenes y el estado de cada expediente.")
     st.caption(
         "Consulta las decisiones del inspector y las correcciones solicitadas. "
         "Solo el área de calidad puede aprobar o rechazar."
@@ -1378,9 +1352,9 @@ if client_page == "Control de calidad":
                 elif e["estado_aplicacion"] == "en_correccion":
                     st.warning("Calidad solicitó una subsanación al aplicador.")
                 elif e["estado_aplicacion"] == "calidad_aprobada":
-                    st.success("Dictamen académico de calidad aprobado.")
+                    st.success("Dictamen de calidad aprobado.")
                 elif e["estado_aplicacion"] == "calidad_rechazada":
-                    st.error("Dictamen académico de calidad rechazado.")
+                    st.error("Dictamen de calidad rechazado.")
                 if e.get("inspecciones"):
                     for i in e["inspecciones"]:
                         st.write(
@@ -1391,7 +1365,3 @@ if client_page == "Control de calidad":
                         st.json(i["criterios"])
                 else:
                     st.caption("Aún no hay dictámenes registrados.")
-                st.caption(
-                    "Esta evaluación es académica y no constituye certificación "
-                    "de obra ni control de calidad oficial de Pintuco."
-                )
