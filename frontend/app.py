@@ -80,13 +80,116 @@ with st.sidebar:
         st.rerun()
 
 st.title("Portal de gestión")
+if profile["role"] in {"asesor", "especialista_tecnico", "administrador"}:
+    st.subheader("RF-05 · Bandeja del asesor técnico")
+    st.caption(
+        "Revisa antecedentes y deja una decisión humana auditable. "
+        "Ninguna aprobación reserva inventario ni genera despachos."
+    )
+    bandeja_asesor = call("GET", "/revision/bandeja") or []
+    if not bandeja_asesor:
+        st.success("No hay solicitudes pendientes en la bandeja.")
+    else:
+        st.metric("Solicitudes por revisar", len(bandeja_asesor))
+        st.dataframe(bandeja_asesor, hide_index=True, use_container_width=True)
+        opciones_asesor = {
+            f"{s['nombre_empresa']} · {s['nombre_proyecto']} · {s['solicitud_id'][:8]}":
+                s["solicitud_id"] for s in bandeja_asesor
+        }
+        caso_asesor = st.selectbox(
+            "Solicitud que vas a revisar", list(opciones_asesor), key="asesor_solicitud"
+        )
+        solicitud_id_asesor = opciones_asesor[caso_asesor]
+        detalle_asesor = call(
+            "GET", f"/revision/solicitudes/{solicitud_id_asesor}/detalle"
+        )
+        if detalle_asesor:
+            s = detalle_asesor["solicitud"]
+            st.write(f"**Estado actual:** {s['estado']} · **Descripción:** {s['descripcion_libre']}")
+            st.write("**Proyecto y condiciones**")
+            st.json(detalle_asesor["proyecto"])
+            st.write("**Último análisis de Gemini**")
+            if detalle_asesor["analisis"]:
+                st.json(detalle_asesor["analisis"]["resultado"])
+            else:
+                st.warning("No existe análisis de Gemini para este caso.")
+            st.write("**Último cálculo técnico**")
+            if detalle_asesor["calculo"]:
+                st.json(detalle_asesor["calculo"])
+            else:
+                st.warning("No hay cálculo técnico para este caso.")
+            st.write("**Evaluación de inventario**")
+            if detalle_asesor["inventario"]:
+                st.json(detalle_asesor["inventario"])
+            else:
+                st.info("Aún no hay evaluación de disponibilidad.")
+            if detalle_asesor["revisiones"]:
+                with st.expander("Historial de decisiones humanas"):
+                    st.dataframe(
+                        detalle_asesor["revisiones"],
+                        use_container_width=True, hide_index=True,
+                    )
+            st.divider()
+            st.subheader("Registrar decisión humana")
+            opciones_decision = {
+                "Aprobar técnicamente": "aprobar",
+                "Rechazar solicitud": "rechazar",
+                "Solicitar más información": "solicitar_informacion",
+                "Solicitar corrección de un parámetro": "solicitar_correccion",
+            }
+            with st.form("resolver_revision"):
+                decision_label = st.selectbox(
+                    "Decisión", list(opciones_decision), key="decision_humana"
+                )
+                decision = opciones_decision[decision_label]
+                observaciones = st.text_area(
+                    "Justificación técnica (obligatoria)",
+                    min_height=120,
+                    max_chars=2000,
+                )
+                correccion = None
+                if decision == "solicitar_correccion":
+                    campo = st.selectbox(
+                        "Campo que requiere corrección",
+                        ["area_m2", "tipo_superficie", "condicion", "ambiente", "color_requerido"],
+                    )
+                    valor = st.text_input(
+                        "Valor propuesto", help="Se registra la propuesta; NO se cambia el proyecto automáticamente."
+                    )
+                    correccion = {"campo": campo, "valor_propuesto": valor.strip()}
+                st.caption(
+                    "La aprobación no autoriza logística; cualquier parámetro corregido "
+                    "deberá verificarse y recalcularse antes de continuar."
+                )
+                aceptar = st.form_submit_button(
+                    "Registrar decisión", type="primary",
+                )
+            if aceptar:
+                body = {
+                    "decision": decision,
+                    "observaciones": observaciones.strip(),
+                    "correccion_propuesta": correccion,
+                }
+                resultado_humano = call(
+                    "POST",
+                    f"/revision/solicitudes/{solicitud_id_asesor}/resolver",
+                    json=body,
+                )
+                if resultado_humano:
+                    st.success(
+                        f"Decisión registrada: {resultado_humano['decision']}. "
+                        f"Nuevo estado: {resultado_humano['estado_nuevo']}."
+                    )
+                    st.rerun()
+    st.stop()
 if profile["role"] != "cliente":
-    st.info("Rol verificado correctamente. Su portal operativo se implementará en las siguientes etapas.")
+    st.info("Este rol aún no tiene una pantalla operativa.")
     st.stop()
 
-tab_dashboard, tab_cliente, tab_proyectos, tab_solicitudes, tab_ia, tab_tecnico, tab_inventario = st.tabs(
+tab_dashboard, tab_cliente, tab_proyectos, tab_solicitudes, tab_ia, tab_tecnico, tab_inventario, tab_revision = st.tabs(
     ["Mi panel", "Mi empresa", "Proyectos", "Solicitudes y fotografías",
-     "Análisis con Gemini", "Cálculo técnico", "Inventario / Disponibilidad"]
+     "Análisis con Gemini", "Cálculo técnico", "Inventario / Disponibilidad",
+     "Revisión técnica"]
 )
 
 with tab_cliente:
@@ -377,3 +480,45 @@ with tab_inventario:
                     )
                 with st.expander("Historial de disponibilidad"):
                     st.dataframe(historial, use_container_width=True, hide_index=True)
+
+
+
+with tab_revision:
+    st.subheader("RF-05 · Estado de revisión de mi solicitud")
+    st.caption(
+        "Solo el asesor o especialista técnico puede aprobar o rechazar. "
+        "Aquí puedes consultar el historial y sus observaciones."
+    )
+    solicitudes_revision = call("GET", "/capture/solicitudes") or []
+    if not solicitudes_revision:
+        st.info("Registra tu primera solicitud para consultar su seguimiento.")
+    else:
+        opciones_revision = {
+            f"{s['created_at'][:10]} · {s['id'][:8]} · {s['estado']}": s["id"]
+            for s in solicitudes_revision
+        }
+        seleccion_revision = st.selectbox(
+            "Solicitud", list(opciones_revision), key="cliente_revision"
+        )
+        detalle = call(
+            "GET",
+            f"/revision/solicitudes/{opciones_revision[seleccion_revision]}/detalle",
+        )
+        if detalle:
+            st.write("**Estado actual:**", detalle["solicitud"]["estado"])
+            if detalle["revisiones"]:
+                st.write("**Decisiones y observaciones del especialista**")
+                for rev in detalle["revisiones"]:
+                    with st.expander(
+                        f"{rev['created_at'][:19]} · {rev['decision']} · {rev['estado_nuevo']}",
+                        expanded=False,
+                    ):
+                        st.write(rev["observaciones"])
+                        if rev["correccion_propuesta"]:
+                            st.json(rev["correccion_propuesta"])
+                        st.caption(
+                            "Las correcciones propuestas no cambian automáticamente el "
+                            "proyecto ni los cálculos ya registrados."
+                        )
+            else:
+                st.info("Aún no se ha registrado una revisión humana para esta solicitud.")
