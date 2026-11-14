@@ -151,6 +151,17 @@ with st.sidebar:
             key="cl_page",
             label_visibility="collapsed",
         )
+    elif profile["role"] == "logistica":
+        st.markdown(
+            '<p class="cl-nav-label">Centro de operaciones</p>',
+            unsafe_allow_html=True,
+        )
+        logistics_page = st.radio(
+            "Navegación de operaciones",
+            ["Reservas", "Órdenes y despachos", "Aplicadores y campo"],
+            key="cl_logistics_page",
+            label_visibility="collapsed",
+        )
     st.divider()
     st.toggle("Modo oscuro", key="cl_dark", help="Preferencia visual de esta sesión.")
     if st.button("Cerrar sesión", use_container_width=True):
@@ -162,6 +173,16 @@ with st.sidebar:
 if profile["role"] == "cliente":
     page_meta = next(p for p in PAGES if p[0] == client_page)
     page_hero(page_meta[1], page_meta[2], page_meta[3], chip="ESPACIO CLIENTE")
+elif profile["role"] == "logistica":
+    descriptions = {
+        "Reservas": "Consulta solicitudes aprobadas y reserva sus materiales demostrativos.",
+        "Órdenes y despachos": "Gestiona la preparación, el despacho y la trazabilidad de cada orden.",
+        "Aplicadores y campo": "Asigna aplicadores y da seguimiento a sus trabajos de campo.",
+    }
+    page_hero(
+        "CENTRO DE OPERACIONES", logistics_page, descriptions[logistics_page],
+        chip="LOGÍSTICA · DEMO",
+    )
 else:
     section, title, description = ROLE_PAGES.get(
         profile["role"],
@@ -181,176 +202,174 @@ if profile["role"] == "logistica":
         "La secuencia es RESERVAR → PREPARAR → DESPACHAR. "
         "Una reserva puede cancelarse antes de despachar."
     )
-
-    pendientes_logistica = call("GET", "/logistica/bandeja") or []
-    st.subheader("Solicitudes aprobadas por reservar")
-    if pendientes_logistica:
-        st.dataframe(pendientes_logistica, use_container_width=True, hide_index=True)
-        opciones_pendientes = {
-            f"{p['nombre_empresa']} · {p['nombre_proyecto']} · "
-            f"{p['envases_requeridos']} envases": p["solicitud_id"]
-            for p in pendientes_logistica
-        }
-        seleccion_pendiente = st.selectbox(
-            "Solicitud aprobada", list(opciones_pendientes), key="rf06_solicitud"
-        )
-        solicitud_logistica_id = opciones_pendientes[seleccion_pendiente]
-        actual_pendiente = next(
-            p for p in pendientes_logistica
-            if p["solicitud_id"] == solicitud_logistica_id
-        )
-        st.write(
-            f"**Envases requeridos:** {actual_pendiente['envases_requeridos']} · "
-            f"**Disponibles ahora:** {actual_pendiente['disponibles_ahora']}"
-        )
-        if actual_pendiente["disponibles_ahora"] < actual_pendiente["envases_requeridos"]:
-            st.warning("No alcanza el stock actual. No se permitirá una reserva parcial.")
-        with st.form("rf06_reservar"):
-            observacion_reserva = st.text_area(
-                "Observación de reserva",
-                value="Reserva académica de materiales para la solicitud aprobada.",
-                max_chars=1000, height=100,
+    if logistics_page == "Reservas":
+        pendientes_logistica = call("GET", "/logistica/bandeja") or []
+        st.subheader("Solicitudes aprobadas por reservar")
+        if pendientes_logistica:
+            st.dataframe(pendientes_logistica, use_container_width=True, hide_index=True)
+            opciones_pendientes = {
+                f"{p['nombre_empresa']} · {p['nombre_proyecto']} · "
+                f"{p['envases_requeridos']} envases": p["solicitud_id"]
+                for p in pendientes_logistica
+            }
+            seleccion_pendiente = st.selectbox(
+                "Solicitud aprobada", list(opciones_pendientes), key="rf06_solicitud"
             )
-            enviar_reserva = st.form_submit_button(
-                "Reservar envases", type="primary"
+            solicitud_logistica_id = opciones_pendientes[seleccion_pendiente]
+            actual_pendiente = next(
+                p for p in pendientes_logistica
+                if p["solicitud_id"] == solicitud_logistica_id
             )
-        if enviar_reserva:
-            result = call(
-                "POST", f"/logistica/solicitudes/{solicitud_logistica_id}/reservar",
-                json={"observaciones": observacion_reserva.strip()},
+            st.write(
+                f"**Envases requeridos:** {actual_pendiente['envases_requeridos']} · "
+                f"**Disponibles ahora:** {actual_pendiente['disponibles_ahora']}"
             )
-            if result:
-                st.session_state["rf06_exito"] = True
-                st.rerun()
-    else:
-        st.info("No hay solicitudes aprobadas pendientes de reserva.")
-
-    st.divider()
-    st.subheader("Órdenes logísticas y trazabilidad")
-    ordenes_activas = call("GET", "/logistica/ordenes") or []
-    if ordenes_activas:
-        etiquetas_ordenes = {
-            f"{o['nombre_empresa']} · {o['id'][:8]} · {o['estado']}": o["id"]
-            for o in ordenes_activas
-        }
-        nombre_orden = st.selectbox(
-            "Seleccionar orden", list(etiquetas_ordenes), key="rf06_orden"
-        )
-        orden_id = etiquetas_ordenes[nombre_orden]
-        orden = next(o for o in ordenes_activas if o["id"] == orden_id)
-        st.write(
-            f"**Estado:** {orden['estado']} · "
-            f"**Envases:** {orden['envases_requeridos']} · "
-            f"**Solicitud:** {orden['estado_solicitud']}"
-        )
-        if orden.get("referencia_despacho"):
-            st.write("**Referencia de despacho simulada:**", orden["referencia_despacho"])
-        if orden.get("lotes"):
-            st.write("**Lotes asociados**")
-            st.dataframe(orden["lotes"], use_container_width=True, hide_index=True)
-        if orden.get("eventos"):
-            with st.expander("Historial de eventos"):
-                st.dataframe(orden["eventos"], use_container_width=True, hide_index=True)
-
-        acciones_posibles = {
-            "reservada": {"Preparar envases": "preparar", "Cancelar reserva": "cancelar"},
-            "preparada": {"Despachar (simulado)": "despachar", "Cancelar reserva": "cancelar"},
-        }.get(orden["estado"], {})
-        if acciones_posibles:
-            nombre_accion = st.selectbox(
-                "Siguiente operación", list(acciones_posibles), key="rf06_accion"
-            )
-            accion_logistica = acciones_posibles[nombre_accion]
-            with st.form("rf06_operacion"):
-                observacion_accion = st.text_area(
-                    "Observaciones de la operación",
-                    value="Se registra la operación logística académica con trazabilidad.",
+            if actual_pendiente["disponibles_ahora"] < actual_pendiente["envases_requeridos"]:
+                st.warning("No alcanza el stock actual. No se permitirá una reserva parcial.")
+            with st.form("rf06_reservar"):
+                observacion_reserva = st.text_area(
+                    "Observación de reserva",
+                    value="Reserva académica de materiales para la solicitud aprobada.",
                     max_chars=1000, height=100,
                 )
-                ejecutar_accion = st.form_submit_button(
-                    "Registrar operación", type="primary"
+                enviar_reserva = st.form_submit_button(
+                    "Reservar envases", type="primary"
                 )
-            if ejecutar_accion:
-                resultado = call(
-                    "POST", f"/logistica/ordenes/{orden_id}/accion",
-                    json={
-                        "accion": accion_logistica,
-                        "observaciones": observacion_accion.strip(),
-                    },
+            if enviar_reserva:
+                result = call(
+                    "POST", f"/logistica/solicitudes/{solicitud_logistica_id}/reservar",
+                    json={"observaciones": observacion_reserva.strip()},
                 )
-                if resultado:
+                if result:
                     st.session_state["rf06_exito"] = True
                     st.rerun()
-        elif orden["estado"] == "despachada":
-            st.success("Despacho académico finalizado; la solicitud pasa a RF-07.")
         else:
-            st.info("La reserva fue cancelada; se puede crear otra si la solicitud está aprobada.")
-    else:
-        st.info("Todavía no hay órdenes de logística registradas.")
+            st.info("No hay solicitudes aprobadas pendientes de reserva.")
+    elif logistics_page == "Órdenes y despachos":
+        st.subheader("Órdenes logísticas y trazabilidad")
+        ordenes_activas = call("GET", "/logistica/ordenes") or []
+        if ordenes_activas:
+            etiquetas_ordenes = {
+                f"{o['nombre_empresa']} · {o['id'][:8]} · {o['estado']}": o["id"]
+                for o in ordenes_activas
+            }
+            nombre_orden = st.selectbox(
+                "Seleccionar orden", list(etiquetas_ordenes), key="rf06_orden"
+            )
+            orden_id = etiquetas_ordenes[nombre_orden]
+            orden = next(o for o in ordenes_activas if o["id"] == orden_id)
+            st.write(
+                f"**Estado:** {orden['estado']} · "
+                f"**Envases:** {orden['envases_requeridos']} · "
+                f"**Solicitud:** {orden['estado_solicitud']}"
+            )
+            if orden.get("referencia_despacho"):
+                st.write("**Referencia de despacho simulada:**", orden["referencia_despacho"])
+            if orden.get("lotes"):
+                st.write("**Lotes asociados**")
+                st.dataframe(orden["lotes"], use_container_width=True, hide_index=True)
+            if orden.get("eventos"):
+                with st.expander("Historial de eventos"):
+                    st.dataframe(orden["eventos"], use_container_width=True, hide_index=True)
 
-    st.divider()
-    st.subheader("RF-07 · Asignación de trabajos de campo")
-    st.caption(
-        "Asigna las solicitudes con despacho confirmado a una cuenta aplicador. "
-        "La asignación es académica y no constituye programación de una visita real."
-    )
-    elegibles_campo = call("GET", "/campo/elegibles") or []
-    usuarios_aplicadores = call("GET", "/campo/aplicadores") or []
-    if not usuarios_aplicadores:
-        st.info("Crea una cuenta con rol aplicador para habilitar las asignaciones.")
-    if elegibles_campo and usuarios_aplicadores:
-        st.dataframe(elegibles_campo, use_container_width=True, hide_index=True)
-        opciones_trabajo = {
-            f"{c['nombre_empresa']} · {c['nombre_proyecto']} · {c['solicitud_id'][:8]}":
-                c["solicitud_id"]
-            for c in elegibles_campo
-        }
-        opciones_aplicador = {
-            f"{a['nombre']} · {a['id'][:8]}": a["id"]
-            for a in usuarios_aplicadores
-        }
-        with st.form("rf07_asignar"):
-            caso_asignar_label = st.selectbox(
-                "Solicitud despachada", list(opciones_trabajo), key="rf07_solicitud_asignar"
-            )
-            usuario_aplicar_label = st.selectbox(
-                "Aplicador responsable", list(opciones_aplicador)
-            )
-            nota_asignacion = st.text_area(
-                "Observaciones de la asignación",
-                value="Asignación académica para seguimiento y aplicación en campo simulado.",
-                max_chars=1500, height=95,
-            )
-            enviar_asignacion = st.form_submit_button(
-                "Asignar al aplicador", type="primary"
-            )
-        if enviar_asignacion:
-            asignado = call(
-                "POST",
-                f"/campo/solicitudes/{opciones_trabajo[caso_asignar_label]}/asignar",
-                json={
-                    "aplicador_id": opciones_aplicador[usuario_aplicar_label],
-                    "observaciones": nota_asignacion.strip(),
-                },
-            )
-            if asignado:
-                st.session_state["rf07_asignacion_exitosa"] = True
-                st.rerun()
-    elif not elegibles_campo:
-        st.info("No hay nuevas solicitudes despachadas pendientes de asignación.")
-    if st.session_state.pop("rf07_asignacion_exitosa", False):
-        st.success("Aplicador asignado y evento registrado en Supabase.")
-    trabajos_campo_logistica = call("GET", "/campo/aplicaciones") or []
-    if trabajos_campo_logistica:
-        st.write("**Seguimiento de los aplicadores**")
-        for trabajo in trabajos_campo_logistica:
-            with st.expander(
-                f"{trabajo['nombre_proyecto']} · {trabajo['aplicador']} · "
-                f"{trabajo['estado']} · {trabajo['avance_pct']}%",
-                expanded=False,
-            ):
-                st.progress(trabajo["avance_pct"] / 100)
-                mostrar_bitacora_campo(trabajo)
+            acciones_posibles = {
+                "reservada": {"Preparar envases": "preparar", "Cancelar reserva": "cancelar"},
+                "preparada": {"Despachar (simulado)": "despachar", "Cancelar reserva": "cancelar"},
+            }.get(orden["estado"], {})
+            if acciones_posibles:
+                nombre_accion = st.selectbox(
+                    "Siguiente operación", list(acciones_posibles), key="rf06_accion"
+                )
+                accion_logistica = acciones_posibles[nombre_accion]
+                with st.form("rf06_operacion"):
+                    observacion_accion = st.text_area(
+                        "Observaciones de la operación",
+                        value="Se registra la operación logística académica con trazabilidad.",
+                        max_chars=1000, height=100,
+                    )
+                    ejecutar_accion = st.form_submit_button(
+                        "Registrar operación", type="primary"
+                    )
+                if ejecutar_accion:
+                    resultado = call(
+                        "POST", f"/logistica/ordenes/{orden_id}/accion",
+                        json={
+                            "accion": accion_logistica,
+                            "observaciones": observacion_accion.strip(),
+                        },
+                    )
+                    if resultado:
+                        st.session_state["rf06_exito"] = True
+                        st.rerun()
+            elif orden["estado"] == "despachada":
+                st.success("Despacho académico finalizado; la solicitud pasa a RF-07.")
+            else:
+                st.info("La reserva fue cancelada; se puede crear otra si la solicitud está aprobada.")
+        else:
+            st.info("Todavía no hay órdenes de logística registradas.")
+    else:
+        st.subheader("RF-07 · Asignación de trabajos de campo")
+        st.caption(
+            "Asigna las solicitudes con despacho confirmado a una cuenta aplicador. "
+            "La asignación es académica y no constituye programación de una visita real."
+        )
+        elegibles_campo = call("GET", "/campo/elegibles") or []
+        usuarios_aplicadores = call("GET", "/campo/aplicadores") or []
+        if not usuarios_aplicadores:
+            st.info("Crea una cuenta con rol aplicador para habilitar las asignaciones.")
+        if elegibles_campo and usuarios_aplicadores:
+            st.dataframe(elegibles_campo, use_container_width=True, hide_index=True)
+            opciones_trabajo = {
+                f"{c['nombre_empresa']} · {c['nombre_proyecto']} · {c['solicitud_id'][:8]}":
+                    c["solicitud_id"]
+                for c in elegibles_campo
+            }
+            opciones_aplicador = {
+                f"{a['nombre']} · {a['id'][:8]}": a["id"]
+                for a in usuarios_aplicadores
+            }
+            with st.form("rf07_asignar"):
+                caso_asignar_label = st.selectbox(
+                    "Solicitud despachada", list(opciones_trabajo), key="rf07_solicitud_asignar"
+                )
+                usuario_aplicar_label = st.selectbox(
+                    "Aplicador responsable", list(opciones_aplicador)
+                )
+                nota_asignacion = st.text_area(
+                    "Observaciones de la asignación",
+                    value="Asignación académica para seguimiento y aplicación en campo simulado.",
+                    max_chars=1500, height=95,
+                )
+                enviar_asignacion = st.form_submit_button(
+                    "Asignar al aplicador", type="primary"
+                )
+            if enviar_asignacion:
+                asignado = call(
+                    "POST",
+                    f"/campo/solicitudes/{opciones_trabajo[caso_asignar_label]}/asignar",
+                    json={
+                        "aplicador_id": opciones_aplicador[usuario_aplicar_label],
+                        "observaciones": nota_asignacion.strip(),
+                    },
+                )
+                if asignado:
+                    st.session_state["rf07_asignacion_exitosa"] = True
+                    st.rerun()
+        elif not elegibles_campo:
+            st.info("No hay nuevas solicitudes despachadas pendientes de asignación.")
+        if st.session_state.pop("rf07_asignacion_exitosa", False):
+            st.success("Aplicador asignado y evento registrado en Supabase.")
+        trabajos_campo_logistica = call("GET", "/campo/aplicaciones") or []
+        if trabajos_campo_logistica:
+            st.write("**Seguimiento de los aplicadores**")
+            for trabajo in trabajos_campo_logistica:
+                with st.expander(
+                    f"{trabajo['nombre_proyecto']} · {trabajo['aplicador']} · "
+                    f"{trabajo['estado']} · {trabajo['avance_pct']}%",
+                    expanded=False,
+                ):
+                    st.progress(trabajo["avance_pct"] / 100)
+                    mostrar_bitacora_campo(trabajo)
     st.stop()
 
 if profile["role"] == "calidad":
