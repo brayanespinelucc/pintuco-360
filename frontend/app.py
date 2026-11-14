@@ -92,7 +92,7 @@ def mostrar_bitacora_campo(app):
 
 
 st.markdown('<span class="brand">COLORLINK · PINTUCO 360</span>', unsafe_allow_html=True)
-st.caption("Plataforma académica · No es un portal oficial de Pintuco · Interfaz 0.8.0")
+st.caption("Plataforma académica · No es un portal oficial de Pintuco · Interfaz 0.9.0")
 
 if not st.session_state.get("access_token"):
     st.title("Iniciar sesión")
@@ -311,6 +311,165 @@ if profile["role"] == "logistica":
                 mostrar_bitacora_campo(trabajo)
     st.stop()
 
+if profile["role"] == "calidad":
+    st.subheader("RF-08 · Control de calidad académico")
+    st.warning(
+        "Los dictámenes se registran como ejercicios universitarios. "
+        "No equivalen a una inspección certificada ni una aprobación comercial."
+    )
+    if st.session_state.pop("rf08_dictamen_exitoso", False):
+        st.success("Dictamen humano de calidad registrado con trazabilidad.")
+    bandeja_calidad = call("GET", "/calidad/bandeja") or []
+    expedientes_calidad = call("GET", "/calidad/expedientes") or []
+    st.subheader("Bandeja pendiente de inspección")
+    if not bandeja_calidad:
+        st.info("No hay aplicaciones pendientes de evaluación.")
+    else:
+        st.dataframe(bandeja_calidad, hide_index=True, use_container_width=True)
+        opciones_calidad = {
+            f"{r['nombre_empresa']} · {r['nombre_proyecto']} · "
+            f"{r['aplicacion_id'][:8]}": r["aplicacion_id"]
+            for r in bandeja_calidad
+        }
+        nombre_caso = st.selectbox(
+            "Aplicación para inspeccionar", list(opciones_calidad),
+            key="rf08_inspeccion_caso"
+        )
+        aplicacion_calidad_id = opciones_calidad[nombre_caso]
+        expediente = next(
+            (e for e in expedientes_calidad
+             if e["aplicacion_id"] == aplicacion_calidad_id),
+            None,
+        )
+        if expediente:
+            st.write(
+                f"**Empresa:** {expediente['nombre_empresa']} · "
+                f"**Proyecto:** {expediente['nombre_proyecto']}"
+            )
+            st.write(
+                f"**Aplicador:** {expediente['aplicador']} · "
+                f"**Avance:** {expediente['avance_pct']} %"
+            )
+            st.write(
+                f"**Superficie:** {expediente['tipo_superficie']} · "
+                f"**Ambiente:** {expediente['ambiente']}"
+            )
+            st.write("**Condición reportada:**", expediente["condicion"])
+            st.write("**Despacho simulado:**", expediente["referencia_despacho"])
+            st.subheader("Evidencias, incidencias y actividades")
+            st.caption(
+                "Revisa las actividades y abre las fotografías privadas antes "
+                "de registrar el checklist."
+            )
+            mostrar_bitacora_campo({
+                "id": expediente["aplicacion_id"],
+                "bitacora": expediente["bitacora"],
+            })
+            if expediente.get("inspecciones"):
+                st.write("**Dictámenes anteriores (inmutables)**")
+                st.dataframe(
+                    expediente["inspecciones"], hide_index=True,
+                    use_container_width=True,
+                )
+            st.divider()
+            st.subheader("Lista de verificación y dictamen")
+            st.caption(
+                "Marca solo criterios que verificaste en el escenario académico. "
+                "Una aprobación requiere cinco criterios cumplidos y evidencia."
+            )
+            with st.form("rf08_dictamen"):
+                superficie_ok = st.checkbox(
+                    "La preparación de superficie es satisfactoria",
+                    value=False,
+                )
+                cobertura_ok = st.checkbox(
+                    "La cobertura es adecuada", value=False
+                )
+                acabado_ok = st.checkbox(
+                    "El acabado es uniforme", value=False
+                )
+                evidencias_ok = st.checkbox(
+                    "Se revisaron las evidencias fotográficas", value=False
+                )
+                incidencias_ok = st.checkbox(
+                    "Las incidencias están gestionadas", value=False
+                )
+                decision_calidad_label = st.selectbox(
+                    "Decisión del inspector",
+                    [
+                        "Solicitar correcciones",
+                        "Aprobar calidad",
+                        "Rechazar inspección",
+                    ],
+                )
+                observacion_calidad = st.text_area(
+                    "Justificación detallada del dictamen",
+                    max_chars=2000, height=150,
+                    placeholder="Describe hallazgos, criterios revisados y decisión...",
+                )
+                confirmo_evaluacion = st.checkbox(
+                    "Confirmo que este dictamen corresponde al expediente revisado "
+                    "y que es exclusivamente académico."
+                )
+                enviar_dictamen = st.form_submit_button(
+                    "Registrar dictamen humano", type="primary"
+                )
+            if enviar_dictamen:
+                decision_calidad = {
+                    "Solicitar correcciones": "solicitar_correccion",
+                    "Aprobar calidad": "aprobar",
+                    "Rechazar inspección": "rechazar",
+                }[decision_calidad_label]
+                criterios_enviados = {
+                    "superficie_preparada": superficie_ok,
+                    "cobertura_adecuada": cobertura_ok,
+                    "acabado_uniforme": acabado_ok,
+                    "evidencias_verificadas": evidencias_ok,
+                    "incidencias_gestionadas": incidencias_ok,
+                }
+                if not confirmo_evaluacion:
+                    st.warning("Confirma que revisaste el expediente académico.")
+                elif len(observacion_calidad.strip()) < 15:
+                    st.warning("Justifica el dictamen en al menos 15 caracteres.")
+                elif decision_calidad == "aprobar" and not all(criterios_enviados.values()):
+                    st.warning("La aprobación requiere todos los criterios cumplidos.")
+                elif decision_calidad != "aprobar" and all(criterios_enviados.values()):
+                    st.warning("Señala al menos un criterio incumplido.")
+                else:
+                    resultado = call(
+                        "POST",
+                        f"/calidad/aplicaciones/{aplicacion_calidad_id}/resolver",
+                        json={
+                            "decision": decision_calidad,
+                            "criterios": criterios_enviados,
+                            "observaciones": observacion_calidad.strip(),
+                        },
+                    )
+                    if resultado:
+                        st.session_state["rf08_dictamen_exitoso"] = True
+                        st.rerun()
+    st.divider()
+    st.subheader("Histórico de expedientes de calidad")
+    if expedientes_calidad:
+        for e in expedientes_calidad:
+            with st.expander(
+                f"{e['nombre_proyecto']} · {e['estado_solicitud']} · "
+                f"{len(e.get('inspecciones') or [])} inspecciones",
+                expanded=False,
+            ):
+                st.write("**Estado de aplicación:**", e["estado_aplicacion"])
+                st.write("**Avance original:**", f"{e['avance_pct']} %")
+                if e.get("inspecciones"):
+                    st.dataframe(
+                        e["inspecciones"], hide_index=True, use_container_width=True
+                    )
+                else:
+                    st.caption("Sin decisiones de calidad registradas.")
+    else:
+        st.info("Aún no hay expedientes en control de calidad.")
+    st.stop()
+
+
 if profile["role"] == "aplicador":
     st.subheader("RF-07 · Ejecución y seguimiento en campo")
     st.warning(
@@ -427,10 +586,73 @@ if profile["role"] == "aplicador":
                     if guardada:
                         st.session_state["rf07_evento_exitoso"] = True
                         st.rerun()
-        else:
-            st.success(
-                "Ejecución completada al 100 %. Caso enviado a control de calidad RF-08."
+        elif trabajo["estado"] == "en_correccion":
+            st.warning(
+                "Calidad solicitó correcciones. El 100 % corresponde al trabajo "
+                "original, NO a su aprobación técnica. Documenta la subsanación "
+                "antes de devolver el expediente a inspección."
             )
+            docs_calidad = call("GET", "/calidad/expedientes") or []
+            expediente_app = next(
+                (e for e in docs_calidad if e["aplicacion_id"] == trabajo_id), None
+            )
+            if expediente_app and expediente_app.get("inspecciones"):
+                ultima = expediente_app["inspecciones"][-1]
+                st.write("**Última observación del inspector:**", ultima["observaciones"])
+                st.write("**Lista de verificación anterior:**")
+                st.json(ultima["criterios"])
+            st.subheader("Adjuntar una foto de corrección (opcional)")
+            with st.form("rf08_foto_correccion"):
+                foto_correccion = st.file_uploader(
+                    "Fotografía de subsanación JPG o PNG (máx. 5 MB)",
+                    type=["jpg", "jpeg", "png"], key="rf08_foto_subsanacion"
+                )
+                nota_foto_correccion = st.text_area(
+                    "Explicación de la fotografía", max_chars=1500, height=100
+                )
+                subir_correccion = st.form_submit_button("Adjuntar fotografía de corrección")
+            if subir_correccion:
+                if foto_correccion is None or len(nota_foto_correccion.strip()) < 10:
+                    st.warning("Selecciona una fotografía y describe su contenido.")
+                else:
+                    uploaded = call(
+                        "POST", f"/campo/aplicaciones/{trabajo_id}/evidencias",
+                        files={"archivo": (
+                            foto_correccion.name, foto_correccion.getvalue(),
+                            foto_correccion.type or "image/jpeg"
+                        )},
+                        data={"observaciones": nota_foto_correccion.strip()},
+                    )
+                    if uploaded:
+                        st.session_state["rf07_evento_exitoso"] = True
+                        st.rerun()
+
+            st.subheader("Subsanación y nueva inspección")
+            with st.form("rf08_subsanar"):
+                nota_subsanacion = st.text_area(
+                    "Describe las acciones correctivas",
+                    placeholder="Detalla qué puntos del dictamen se atendieron.",
+                    max_chars=1500, height=130,
+                )
+                enviar_subsanacion = st.form_submit_button(
+                    "Enviar correcciones a calidad", type="primary"
+                )
+            if enviar_subsanacion:
+                result = call(
+                    "POST", f"/campo/aplicaciones/{trabajo_id}/subsanar",
+                    json={"observaciones": nota_subsanacion.strip()},
+                )
+                if result:
+                    st.session_state["rf07_evento_exitoso"] = True
+                    st.rerun()
+        elif trabajo["estado"] == "pendiente_calidad":
+            st.info("Trabajo completado al 100 %. Pendiente de dictamen humano RF-08.")
+        elif trabajo["estado"] == "calidad_aprobada":
+            st.success("La inspección académica de calidad fue aprobada.")
+        elif trabajo["estado"] == "calidad_rechazada":
+            st.error("La inspección académica fue rechazada. Consulta el expediente.")
+        else:
+            st.info("Estado no disponible para nuevas actividades.")
         st.divider()
         st.subheader("Bitácora cronológica")
         mostrar_bitacora_campo(trabajo)
@@ -553,10 +775,10 @@ if profile["role"] != "cliente":
     st.info("Este rol aún no tiene una pantalla operativa.")
     st.stop()
 
-tab_dashboard, tab_revision, tab_cliente, tab_proyectos, tab_solicitudes, tab_ia, tab_tecnico, tab_inventario, tab_seguimiento, tab_campo = st.tabs(
+tab_dashboard, tab_revision, tab_cliente, tab_proyectos, tab_solicitudes, tab_ia, tab_tecnico, tab_inventario, tab_seguimiento, tab_campo, tab_calidad = st.tabs(
     ["Mi panel", "Revisión técnica", "Mi empresa", "Proyectos", "Solicitudes y fotografías",
      "Análisis con Gemini", "Cálculo técnico", "Inventario / Disponibilidad",
-     "Seguimiento logístico", "Aplicación en campo"]
+     "Seguimiento logístico", "Aplicación en campo", "Control de calidad"]
 )
 
 with tab_cliente:
@@ -1024,3 +1246,47 @@ with tab_campo:
                 if trabajo_cliente["estado"] == "pendiente_calidad":
                     st.info("Aplicación finalizada; pendiente de revisión de calidad RF-08.")
                 mostrar_bitacora_campo(trabajo_cliente)
+
+
+
+with tab_calidad:
+    st.subheader("RF-08 · Control de calidad de mis proyectos")
+    st.caption(
+        "Consulta las decisiones del inspector y las correcciones solicitadas. "
+        "Solo el área de calidad puede aprobar o rechazar."
+    )
+    mis_expedientes_calidad = call("GET", "/calidad/expedientes") or []
+    if not mis_expedientes_calidad:
+        st.info("No hay aún un expediente de aplicación asociado a tus proyectos.")
+    else:
+        for e in mis_expedientes_calidad:
+            with st.expander(
+                f"{e['nombre_proyecto']} · {e['estado_solicitud']} · "
+                f"{e['estado_aplicacion']}",
+                expanded=(e == mis_expedientes_calidad[0]),
+            ):
+                st.write("**Estado de calidad:**", e["estado_aplicacion"])
+                st.write("**Estado de la solicitud:**", e["estado_solicitud"])
+                st.write("**Aplicador asignado:**", e["aplicador"])
+                if e["estado_aplicacion"] == "pendiente_calidad":
+                    st.info("Caso pendiente de revisión por un inspector.")
+                elif e["estado_aplicacion"] == "en_correccion":
+                    st.warning("Calidad solicitó una subsanación al aplicador.")
+                elif e["estado_aplicacion"] == "calidad_aprobada":
+                    st.success("Dictamen académico de calidad aprobado.")
+                elif e["estado_aplicacion"] == "calidad_rechazada":
+                    st.error("Dictamen académico de calidad rechazado.")
+                if e.get("inspecciones"):
+                    for i in e["inspecciones"]:
+                        st.write(
+                            f"**Dictamen {i['numero_inspeccion']}: {i['decision']}** "
+                            f"· {i['created_at'][:19]}"
+                        )
+                        st.write("**Observaciones:**", i["observaciones"])
+                        st.json(i["criterios"])
+                else:
+                    st.caption("Aún no hay dictámenes registrados.")
+                st.caption(
+                    "Esta evaluación es académica y no constituye certificación "
+                    "de obra ni control de calidad oficial de Pintuco."
+                )
