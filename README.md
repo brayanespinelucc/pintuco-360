@@ -89,3 +89,7 @@ Módulo de operaciones para una cuenta con rol `logistica`: bandeja de solicitud
 ## RF-07 — Ejecución en campo
 
 El área logística asigna solicitudes despachadas a un usuario `aplicador`; este registra inicio, avances, incidencias, fotografías privadas y finalización al 100 %. La solicitud pasa a `en_calidad` y queda pendiente de RF-08. El cliente consulta únicamente sus propios trabajos en **Aplicación en campo**. Datos y actividades son **académicos y simulados**. [Guía de RF-07](docs/RF07_FIELD_EXECUTION.md).
+
+## RF-08 — Control de calidad académico
+
+Inspector `calidad` revisa las actividades, incidencias y fotografías de RF-07, completa un checklist de cinco criterios y decide **aprobar**, **solicitar corrección** o **rechazar**; dictámenes auditables e inmutables. Ante correcciones, el aplicador puede aportar evidencia y presentar subsanación sin eliminar el dictamen anterior. El cliente consulta el historial en **Control de calidad**. Solo representa una evaluación académica, no certificación oficial. [Guía de RF-08](docs/RF08_QUALITY.md).
