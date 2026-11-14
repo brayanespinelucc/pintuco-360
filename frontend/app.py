@@ -123,6 +123,17 @@ if profile["role"] in {"asesor", "especialista_tecnico", "administrador"}:
                 st.json(detalle_asesor["inventario"])
             else:
                 st.info("Aún no hay evaluación de disponibilidad.")
+            if detalle_asesor.get("respuestas_cliente"):
+                st.write("**Respuestas enviadas por el cliente**")
+                for respuesta_cliente in detalle_asesor["respuestas_cliente"]:
+                    with st.expander(
+                        f"{respuesta_cliente['created_at'][:19]} · "
+                        f"{respuesta_cliente['estado_nuevo']}",
+                        expanded=True,
+                    ):
+                        st.write(respuesta_cliente["respuesta"])
+                        st.caption("Respuesta vinculada a la revisión: "
+                                   + respuesta_cliente["revision_id"][:8])
             if detalle_asesor["revisiones"]:
                 with st.expander("Historial de decisiones humanas"):
                     st.dataframe(
@@ -522,3 +533,66 @@ with tab_revision:
                         )
             else:
                 st.info("Aún no se ha registrado una revisión humana para esta solicitud.")
+
+            if detalle.get("respuestas_cliente"):
+                st.write("**Mis respuestas anteriores**")
+                for respuesta in detalle["respuestas_cliente"]:
+                    with st.expander(
+                        f"{respuesta['created_at'][:19]} · Enviada a revisión",
+                        expanded=False,
+                    ):
+                        st.write(respuesta["respuesta"])
+                        st.caption(
+                            "Registrada y vinculada al requerimiento "
+                            + respuesta["revision_id"][:8]
+                        )
+
+            ultimas_revisiones = detalle.get("revisiones", [])
+            ultima_revision = ultimas_revisiones[0] if ultimas_revisiones else None
+            pendiente = (
+                detalle["solicitud"]["estado"] == "pendiente_informacion"
+                and ultima_revision
+                and ultima_revision["decision"]
+                in ("solicitar_informacion", "solicitar_correccion")
+            )
+            if pendiente:
+                st.divider()
+                st.subheader("Responder al especialista técnico")
+                st.write("**Información solicitada:**", ultima_revision["observaciones"])
+                if ultima_revision["decision"] == "solicitar_correccion":
+                    st.warning(
+                        "El especialista propuso corregir un dato. Tu respuesta se "
+                        "guardará, pero NO cambiará el área, la superficie ni los "
+                        "cálculos existentes automáticamente."
+                    )
+                    if ultima_revision.get("correccion_propuesta"):
+                        st.json(ultima_revision["correccion_propuesta"])
+                with st.form("respuesta_revision_cliente"):
+                    respuesta_texto = st.text_area(
+                        "Mi respuesta o aclaración (obligatoria)",
+                        placeholder=(
+                            "Describe los datos solicitados y lo que puede verificarse "
+                            "en una futura inspección..."
+                        ),
+                        max_chars=3000,
+                        height=160,
+                    )
+                    enviado = st.form_submit_button(
+                        "Enviar respuesta al especialista", type="primary"
+                    )
+                if enviado:
+                    if len(respuesta_texto.strip()) < 10:
+                        st.warning("Incluye al menos 10 caracteres de información.")
+                    else:
+                        resultado_respuesta = call(
+                            "POST",
+                            f"/revision/solicitudes/{detalle['solicitud']['id']}/responder",
+                            json={"respuesta": respuesta_texto.strip()},
+                        )
+                        if resultado_respuesta:
+                            st.session_state["respuesta_revision_exito"] = True
+                            st.rerun()
+            elif detalle["solicitud"]["estado"] == "en_revision_tecnica":
+                st.info("Tu respuesta está enviada y el caso está nuevamente en revisión técnica.")
+            if st.session_state.pop("respuesta_revision_exito", False):
+                st.success("Respuesta registrada en Supabase y enviada a revisión técnica.")
