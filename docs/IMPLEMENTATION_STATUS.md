@@ -29,3 +29,12 @@
 - Pruebas automáticas: agregadas; estado se confirma en CI.
 - Prueba real local con el usuario: **pendiente**.
 - Persistencia trazable habilitada. No están implementadas aprobación técnica, inventarios ni cotizaciones.
+
+## RF-04 — Inventario y disponibilidad
+- Bodegas, lotes y evaluaciones con RLS: migración aplicada a Supabase.
+- Datos de prueba: 2 bodegas y 2 lotes académicos, 7 envases disponibles en total.
+- RPC segura: función privada con comprobación de auth.uid y wrapper de invocador expuesto.
+- Propuesta FEFO y derivación a producción si faltan envases: implementadas.
+- API y pestaña de Streamlit: implementadas; CI y prueba local pendientes de confirmar.
+- La prueba directa de RPC con un usuario autenticado pasó dentro de una transacción revertida.
+- No existen reservas ni descuentos de stock, tampoco integración con inventario real de Pintuco.
