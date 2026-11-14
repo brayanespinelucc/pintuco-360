@@ -140,6 +140,17 @@ async def classify_with_gemini(
         raise HTTPException(status_code=502, detail="No se pudo conectar con Gemini.") from exc
     if response.status_code in (401, 403):
         raise HTTPException(status_code=502, detail="Google rechazó la clave o los permisos de Gemini.")
+    if response.status_code == 404:
+        raise HTTPException(
+            status_code=502,
+            detail=(
+                f"Google devolvió 404 para el modelo {model}. "
+                "Puede estar restringido o no disponible para tu proyecto. "
+                "En el archivo .env configura GEMINI_MODEL=gemini-3.5-flash-lite "
+                "(alternativa: gemini-3.8-flash), guarda y reinicia Docker. "
+                "Si persiste, revisa en Google AI Studio el acceso de tu clave a ese modelo."
+            ),
+        )
     if response.status_code == 429:
         raise HTTPException(status_code=503, detail="Gemini alcanzó su límite temporal de solicitudes.")
     if response.is_error:

@@ -95,7 +95,7 @@ def test_successful_analysis_persists_structured_record(monkeypatch):
             informacion_faltante=["inspección"],
             requiere_revision_humana=True, confianza_cualitativa="media",
             resumen="Se requiere visita técnica previa a la elección de recubrimiento."
-        ), "gemini-2.5-flash")
+        ), "gemini-3.5-flash-lite")
 
     app.dependency_overrides[capture.current_user] = user_override
     monkeypatch.setattr(ai, "supabase_rest", fake_rest)
@@ -110,3 +110,47 @@ def test_successful_analysis_persists_structured_record(monkeypatch):
         assert any(method == "POST" and table == "analisis_ia" for method, table, _ in calls)
     finally:
         app.dependency_overrides.clear()
+
+
+
+def test_provider_404_has_actionable_message(monkeypatch):
+    """Una denegación del modelo no se confunde con un error genérico del portal."""
+    import asyncio
+    from types import SimpleNamespace
+
+    import httpx
+    import pytest
+    from backend.app.services import gemini
+
+    class Google404:
+        status_code = 404
+        is_error = True
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return False
+
+        async def post(self, *args, **kwargs):
+            return Google404()
+
+    monkeypatch.setattr(gemini, "get_settings", lambda: SimpleNamespace(
+        gemini_api_key="test-key-do-not-use",
+        gemini_model="gemini-2.5-flash",
+    ))
+    monkeypatch.setattr(gemini.httpx, "AsyncClient", FakeClient)
+
+    with pytest.raises(HTTPException) as error:
+        asyncio.run(gemini.classify_with_gemini(
+            description="Pintar fachada de concreto con humedad",
+            project={"ambiente": "exterior", "condicion": "humedad"},
+            images=[],
+        ))
+    assert error.value.status_code == 502
+    assert "gemini-3.5-flash-lite" in error.value.detail
+    assert "GEMINI_MODEL" in error.value.detail

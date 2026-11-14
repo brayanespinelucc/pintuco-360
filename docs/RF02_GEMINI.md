@@ -16,7 +16,7 @@ La etapa 3 de la imagen y el RF-02 del SRS de COLORLINK incluyen convertir las e
 
 ### Para activar
 1. Abre https://aistudio.google.com/apikey y crea una clave para Gemini (no la compartas en chat o GitHub).
-2. En el archivo \`.env\` **local**, configura \`GEMINI_API_KEY=<tu_clave>\` y \`GEMINI_MODEL=gemini-2.5-flash\`.
+2. En el archivo \`.env\` **local**, configura \`GEMINI_API_KEY=<tu_clave>\` y \`GEMINI_MODEL=gemini-3.5-flash-lite\`.
 3. Ejecuta \`git pull origin feat/base-plataforma-pintuco360\` y \`docker compose up --build\`.
 4. Abre \`http://localhost:8501\`, inicia sesión y selecciona **Análisis con Gemini**.
 5. Selecciona una solicitud, autoriza el envío y analiza. Revisa el JSON guardado.
@@ -33,3 +33,17 @@ La etapa 3 de la imagen y el RF-02 del SRS de COLORLINK incluyen convertir las e
 ## Referencias
 - https://ai.google.dev/gemini-api/docs/generate-content/image-understanding
 - https://ai.google.dev/gemini-api/docs/migrate-to-interactions
+
+
+### Error 502 al invocar Gemini con respuesta HTTP 404
+
+Google restringe el acceso de nuevos proyectos a Gemini 2.5: `gemini-2.5-flash` puede aparecer al listar modelos pero devolver 404 en `generateContent`.
+Para corregir, cambia **el archivo `.env` local**, no solamente el `.env.example` del repositorio:
+
+```env
+GEMINI_MODEL=gemini-3.5-flash-lite
+```
+
+Este modelo soporta análisis de imágenes y salida estructurada. Reinicia `docker compose up --build`; no es suficiente modificar el código porque Docker carga la variable de entorno al iniciar. Como alternativa puede evaluarse `gemini-3.8-flash`. En ambos casos, el acceso y la cuota dependen de tu cuenta de Google AI Studio. No compartas la clave.
+
+Referencias: https://ai.google.dev/gemini-api/docs/deprecations y https://aistudio.google.com/docs/models/gemini-3.5-flash-lite.

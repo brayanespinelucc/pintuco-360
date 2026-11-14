@@ -62,3 +62,5 @@ python -m compileall -q backend frontend
 4. En la pestaña **Análisis con Gemini**, selecciona tu solicitud, confirma el envío y consulta el JSON persistido.
 
 Las pruebas automatizadas usan dobles de prueba y **no prueban una llamada real a la API de Google**.
+
+**Si Gemini devuelve HTTP 404:** verifica que tu `.env` **local** contenga `GEMINI_MODEL=gemini-3.5-flash-lite` (no basta cambiar `.env.example`), reinicia Docker y vuelve a ejecutar el análisis. Algunas claves recientes no tienen acceso a Gemini 2.5.
