@@ -144,7 +144,7 @@ if profile["role"] in {"asesor", "especialista_tecnico", "administrador"}:
             with st.form("resolver_revision"):
                 observaciones = st.text_area(
                     "Justificación técnica (obligatoria)",
-                    min_height=120,
+                    height=160,
                     max_chars=2000,
                 )
                 correccion = None
