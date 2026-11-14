@@ -55,3 +55,14 @@
 - Pruebas SQL transaccionales revertidas: transición de estado, bloqueo de duplicados, denegación a especialista y a otro cliente.
 - La solicitud real sigue pendiente de respuesta; prueba desde Streamlit pendiente.
 - No se actualizaron proyectos, cálculos ni existencias en la implementación.
+
+## RF-06 — Logística académica (v0.7.0)
+- Migración 0009_rf06_logistics.sql aplicada a Supabase con reserva FEFO y operaciones transaccionales.
+- Tablas de orden, asignación de lotes y eventos con RLS y permisos directos revocados.
+- Funciones internas verifican rol logistica/administrador, solicitud aprobada y cálculo aprobado.
+- Operaciones: reservar, preparar, despachar o cancelar; reintentos idempotentes; sin reservas parciales.
+- Portal de logística y seguimiento del cliente implementados en Streamlit.
+- Pruebas SQL temporales con ROLLBACK superadas: reserva, preparación, despacho, cancelación, re-reserva, falta de stock y permiso de cliente.
+- Datos reales en Supabase permanecen sin movimientos por parte de las pruebas.
+- Falta crear tercera cuenta de prueba logistica y ejecutar escenario E2E del usuario.
+- El inventario y las referencias son exclusivamente demostrativos y no hay transportadora ni WMS.
