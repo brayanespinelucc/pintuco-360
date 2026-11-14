@@ -84,9 +84,9 @@ if profile["role"] != "cliente":
     st.info("Rol verificado correctamente. Su portal operativo se implementará en las siguientes etapas.")
     st.stop()
 
-tab_dashboard, tab_cliente, tab_proyectos, tab_solicitudes, tab_ia, tab_tecnico = st.tabs(
+tab_dashboard, tab_cliente, tab_proyectos, tab_solicitudes, tab_ia, tab_tecnico, tab_inventario = st.tabs(
     ["Mi panel", "Mi empresa", "Proyectos", "Solicitudes y fotografías",
-     "Análisis con Gemini", "Cálculo técnico"]
+     "Análisis con Gemini", "Cálculo técnico", "Inventario / Disponibilidad"]
 )
 
 with tab_cliente:
@@ -192,7 +192,7 @@ with tab_dashboard:
     c1.metric("Empresas", len(clientes))
     c2.metric("Proyectos", len(proyectos))
     c3.metric("Solicitudes", len(solicitudes))
-    st.info("RF-01 disponible. Las etapas de IA, cálculo, inventario y logística aún no están implementadas.")
+    st.info("RF-01 a RF-04 disponibles. Reservas y despacho aún están pendientes.")
 
 
 with tab_ia:
