@@ -76,3 +76,13 @@
 - SQL en transacciones revertidas: roles simulados, asignación, progreso, incidencia, cierre y foto con autorización storage; confirmado.
 - **Prueba E2E local pendiente:** crear cuarta cuenta con rol `aplicador`, asignar desde logística, iniciar desde aplicador.
 - RF-08 — inspección y decisión humana de calidad — permanece pendiente.
+
+## RF-08 — Control de calidad (v0.9.0)
+- Migración `0011_rf08_quality.sql` aplicada a Supabase; inspecciones auditables, 5 criterios, aprobación/corrección/rechazo.
+- Solo calidad/administrador emiten dictámenes; propiedad del cliente y aplicador verificada en RPC; RLS sin acceso directo.
+- Un dictamen de corrección reabre el ciclo para subsanación humana sin alterar el progreso 100 % del trabajo terminado.
+- Se mantiene un histórico inmutable por número de inspección; la aprobación cambia solicitud a `finalizada`, el rechazo a `rechazada`.
+- La bandeja de calidad, el formulario de checklist, la bitácora fotográfica y el seguimiento de cliente están integrados en Streamlit.
+- SQL con ROLLBACK verificó aprobación, rechazo, correcciones, reinspección y permisos; el caso real permanece `en_calidad`.
+- Prueba de usuario pendiente: crear quinta cuenta de rol `calidad` y ejecutar el primer dictamen.
+- Evaluación exclusivamente académica; no hay certificación de obra real.
