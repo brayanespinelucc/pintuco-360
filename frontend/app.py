@@ -4,22 +4,22 @@ from datetime import date, timedelta
 import httpx
 import streamlit as st
 from dotenv import load_dotenv
+from frontend.design import (
+    PAGES, ROLE_PAGES, ROLE_LABELS,
+    apply_design_system, brand, user_identity, page_hero,
+    metric_cards, section_intro,
+)
 
 load_dotenv()
 API = os.getenv("API_BASE_URL", "http://localhost:8000").rstrip("/")
-st.set_page_config(page_title="COLORLINK | Pintuco 360", page_icon="🎨", layout="wide")
-st.markdown(
-    """<style>
-      @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
-      html,body,[data-testid="stApp"] {font-family:Montserrat,sans-serif;}
-      [data-testid="stApp"] {background:#f7f9fd;}
-      h1,h2,h3 {color:#0A1E8C;}
-      div.stButton>button[kind="primary"],div.stFormSubmitButton>button[kind="primary"]{
-      background:#FFDD00;color:#0A1E8C;border:0;font-weight:800;}
-      .brand {background:#0A1E8C;color:white;border-radius:8px;padding:8px 14px;font-weight:800;}
-    </style>""",
-    unsafe_allow_html=True,
+st.set_page_config(
+    page_title="COLORLINK · Espacio de trabajo",
+    page_icon="🎨",
+    layout="wide",
+    initial_sidebar_state="expanded",
 )
+# Apariencia local de esta sesión. No se persiste ni modifica dato de negocio.
+apply_design_system(bool(st.session_state.get("cl_dark", False)))
 
 
 def call(method, path, *, json=None, files=None, data=None):
@@ -91,23 +91,40 @@ def mostrar_bitacora_campo(app):
                         st.image(contenido, caption="Evidencia de campo académica")
 
 
-st.markdown('<span class="brand">COLORLINK · PINTUCO 360</span>', unsafe_allow_html=True)
-st.caption("Plataforma académica · No es un portal oficial de Pintuco · Interfaz 0.9.0")
-
 if not st.session_state.get("access_token"):
-    st.title("Iniciar sesión")
-    with st.form("login"):
-        email = st.text_input("Correo electrónico")
-        password = st.text_input("Contraseña", type="password")
-        submitted = st.form_submit_button("Ingresar", type="primary")
-    if submitted:
-        if not email.strip() or not password:
-            st.warning("Completa el correo y la contraseña.")
-        else:
-            result = call("POST", "/auth/login", json={"email":email.strip(), "password": password})
-            if result and result.get("access_token"):
-                st.session_state["access_token"] = result["access_token"]
-                st.rerun()
+    _, login_center, _ = st.columns([1, 1.5, 1])
+    with login_center:
+        brand(compact=True)
+        page_hero(
+            "ACCESO SEGURO",
+            "Bienvenido a COLORLINK",
+            "Gestiona tus proyectos, solicitudes y revisiones en un solo lugar.",
+            chip="UNIVERSIDAD · DEMO",
+        )
+        st.subheader("Iniciar sesión")
+        st.caption("Ingresa con tu cuenta autorizada para continuar.")
+        with st.form("login"):
+            email = st.text_input("Correo electrónico")
+            password = st.text_input("Contraseña", type="password")
+            submitted = st.form_submit_button(
+                "Ingresar a mi espacio", type="primary", use_container_width=True
+            )
+        if submitted:
+            if not email.strip() or not password:
+                st.warning("Completa el correo y la contraseña.")
+            else:
+                result = call(
+                    "POST", "/auth/login",
+                    json={"email": email.strip(), "password": password},
+                )
+                if result and result.get("access_token"):
+                    st.session_state["access_token"] = result["access_token"]
+                    st.rerun()
+        st.markdown(
+            '<p class="cl-footnote">Plataforma académica de demostración. '
+            'No es un portal oficial de Pintuco y no emite certificaciones.</p>',
+            unsafe_allow_html=True,
+        )
     st.stop()
 
 profile = call("GET", "/auth/me")
@@ -118,14 +135,39 @@ if not profile:
     st.stop()
 
 with st.sidebar:
-    st.header("COLORLINK")
-    st.write(f"**Usuario:** {profile.get('full_name') or profile.get('email')}")
-    st.write(f"**Rol:** {profile['role'].replace('_',' ').title()}")
+    brand()
+    user_identity(
+        profile.get("full_name") or profile.get("email") or "Cuenta COLORLINK",
+        profile["role"],
+    )
+    if profile["role"] == "cliente":
+        st.markdown(
+            '<p class="cl-nav-label">Tu espacio de trabajo</p>',
+            unsafe_allow_html=True,
+        )
+        client_page = st.radio(
+            "Navegación principal",
+            [p[0] for p in PAGES],
+            key="cl_page",
+            label_visibility="collapsed",
+        )
+    st.divider()
+    st.toggle("Modo oscuro", key="cl_dark", help="Preferencia visual de esta sesión.")
     if st.button("Cerrar sesión", use_container_width=True):
         st.session_state.pop("access_token", None)
+        st.session_state.pop("cl_page", None)
         st.rerun()
+    st.caption("COLORLINK · Entorno académico de prueba")
 
-st.title("Portal de gestión")
+if profile["role"] == "cliente":
+    page_meta = next(p for p in PAGES if p[0] == client_page)
+    page_hero(page_meta[1], page_meta[2], page_meta[3], chip="ESPACIO CLIENTE")
+else:
+    section, title, description = ROLE_PAGES.get(
+        profile["role"],
+        ("Plataforma", "Espacio de trabajo", "Herramientas disponibles para tu cuenta."),
+    )
+    page_hero(section, title, description, chip=ROLE_LABELS.get(profile["role"], "COLORLINK"))
 if profile["role"] == "logistica":
     st.subheader("RF-06 · Logística académica")
     st.warning(
@@ -775,14 +817,11 @@ if profile["role"] != "cliente":
     st.info("Este rol aún no tiene una pantalla operativa.")
     st.stop()
 
-tab_dashboard, tab_revision, tab_cliente, tab_proyectos, tab_solicitudes, tab_ia, tab_tecnico, tab_inventario, tab_seguimiento, tab_campo, tab_calidad = st.tabs(
-    ["Mi panel", "Revisión técnica", "Mi empresa", "Proyectos", "Solicitudes y fotografías",
-     "Análisis con Gemini", "Cálculo técnico", "Inventario / Disponibilidad",
-     "Seguimiento logístico", "Aplicación en campo", "Control de calidad"]
-)
+# Una sola página por vez: evita cargar 11 módulos y sus peticiones en paralelo.
+# Los formularios, claves y llamadas originales permanecen intactos.
 
-with tab_cliente:
-    st.subheader("Registrar empresa")
+if client_page == "Mi empresa":
+    section_intro("PERFIL", "Tus empresas", "Crea y consulta organizaciones vinculadas a tu cuenta.")
     with st.form("crear_cliente"):
         nombre = st.text_input("Nombre de la empresa", max_chars=160)
         ciudad = st.text_input("Ciudad", max_chars=100)
@@ -797,8 +836,8 @@ with tab_cliente:
     else:
         st.info("Primero registra tu empresa para crear proyectos.")
 
-with tab_proyectos:
-    st.subheader("Mis proyectos")
+if client_page == "Proyectos":
+    section_intro("PLANIFICACIÓN", "Proyectos", "Organiza nuevos proyectos y consulta sus condiciones registradas.")
     clientes = call("GET", "/capture/clientes") or []
     proyectos = call("GET", "/capture/proyectos") or []
     if clientes:
@@ -829,8 +868,8 @@ with tab_proyectos:
     if proyectos:
         st.dataframe(proyectos, use_container_width=True, hide_index=True)
 
-with tab_solicitudes:
-    st.subheader("Nueva solicitud")
+if client_page == "Solicitudes":
+    section_intro("CAPTURA", "Solicitudes y evidencias", "Radica necesidades y adjunta fotografías a tus solicitudes.")
     proyectos = call("GET", "/capture/proyectos") or []
     solicitudes = call("GET", "/capture/solicitudes") or []
     if proyectos:
@@ -875,19 +914,49 @@ with tab_solicitudes:
         if evidencias:
             st.dataframe(evidencias, use_container_width=True, hide_index=True)
 
-with tab_dashboard:
-    st.subheader("Resumen de mi actividad")
+if client_page == "Mi panel":
+    section_intro(
+        "VISTA GENERAL", "Tu actividad en un vistazo",
+        "Datos reales de las empresas, proyectos y solicitudes de esta cuenta.",
+    )
     clientes = call("GET", "/capture/clientes") or []
     proyectos = call("GET", "/capture/proyectos") or []
     solicitudes = call("GET", "/capture/solicitudes") or []
-    c1, c2, c3 = st.columns(3)
-    c1.metric("Empresas", len(clientes))
-    c2.metric("Proyectos", len(proyectos))
-    c3.metric("Solicitudes", len(solicitudes))
-    st.info("RF-01 a RF-04 disponibles. Reservas y despacho aún están pendientes.")
+    metric_cards([
+        ("Empresas", len(clientes), "Organizaciones registradas", "building-2"),
+        ("Proyectos", len(proyectos), "Proyectos vinculados", "folder-kanban"),
+        ("Solicitudes", len(solicitudes), "Solicitudes radicadas", "files"),
+    ])
+    section_intro(
+        "ACCESOS DIRECTOS", "¿Qué necesitas hacer?",
+        "Continúa en el módulo correspondiente sin recorrer las demás secciones.",
+    )
+    q1, q2, q3 = st.columns(3)
+    with q1:
+        st.button(
+            "Gestionar proyectos", key="cl_quick_projects",
+            use_container_width=True,
+            on_click=lambda: st.session_state.update({"cl_page": "Proyectos"}),
+        )
+    with q2:
+        st.button(
+            "Ver solicitudes", key="cl_quick_requests",
+            use_container_width=True,
+            on_click=lambda: st.session_state.update({"cl_page": "Solicitudes"}),
+        )
+    with q3:
+        st.button(
+            "Seguimiento de calidad", key="cl_quick_quality",
+            use_container_width=True,
+            on_click=lambda: st.session_state.update({"cl_page": "Control de calidad"}),
+        )
+    st.caption(
+        "Los indicadores reflejan exclusivamente los registros de la sesión actual. "
+        "Selecciona una sección del menú lateral para continuar."
+    )
 
 
-with tab_ia:
+if client_page == "Análisis con Gemini":
     st.subheader("Clasificación inteligente de solicitudes — RF-02")
     st.info(
         "Gemini clasifica descripciones y fotografías; NO calcula cantidades, "
@@ -937,7 +1006,7 @@ with tab_ia:
             st.caption("Todavía no hay análisis para esta solicitud.")
 
 
-with tab_tecnico:
+if client_page == "Cálculo técnico":
     st.subheader("RF-03 · Cálculo técnico determinístico")
     st.caption(
         "El backend calcula los litros usando el área del proyecto y rendimientos "
@@ -1006,7 +1075,7 @@ with tab_tecnico:
                 st.dataframe(records, use_container_width=True, hide_index=True)
 
 
-with tab_inventario:
+if client_page == "Inventario":
     st.subheader("RF-04 · Disponibilidad por bodegas y lotes")
     st.info(
         "Consulta existencias en Supabase y propone lotes por fecha de vencimiento. "
@@ -1072,7 +1141,7 @@ with tab_inventario:
 
 
 
-with tab_revision:
+if client_page == "Revisión técnica":
     st.subheader("RF-05 · Revisión técnica y respuesta al especialista")
     st.caption(
         "El cliente responde aquí a las solicitudes de información. "
@@ -1180,7 +1249,7 @@ with tab_revision:
 
 
 
-with tab_seguimiento:
+if client_page == "Seguimiento logístico":
     st.subheader("RF-06 · Seguimiento logístico de mis solicitudes")
     st.caption(
         "Solo se muestran las órdenes de tus solicitudes. "
@@ -1219,7 +1288,7 @@ with tab_seguimiento:
 
 
 
-with tab_campo:
+if client_page == "Aplicación en campo":
     st.subheader("RF-07 · Seguimiento de la aplicación de mis proyectos")
     st.caption(
         "Consulta el avance, las incidencias y las fotografías del aplicador asignado. "
@@ -1249,8 +1318,8 @@ with tab_campo:
 
 
 
-with tab_calidad:
-    st.subheader("RF-08 · Control de calidad de mis proyectos")
+if client_page == "Control de calidad":
+    section_intro("RF-08", "Historial de calidad", "Consulta los dictámenes humanos y el estado de cada expediente.")
     st.caption(
         "Consulta las decisiones del inspector y las correcciones solicitadas. "
         "Solo el área de calidad puede aprobar o rechazar."
