@@ -76,3 +76,8 @@ Ya existe la pestaña Inventario / Disponibilidad: consulta lotes en Supabase, p
 ## RF-05 — Revisión humana por especialista
 
 El asesor/especialista puede examinar información de la solicitud, Gemini, el motor técnico y los lotes propuestos; aprobar, rechazar o solicitar información/correcciones. Cada decisión queda auditada. La cuenta cliente únicamente consulta sus propias decisiones. **Para probar los permisos hace falta un segundo usuario con rol especialista_tecnico**; no conviertas la cuenta cliente actual. Consulta [docs/RF05_REVIEW.md](docs/RF05_REVIEW.md) para el alta del asesor, SQL de rol y prueba paso a paso. La aprobación no reserva inventario.
+
+## RF-05.1 — Respuesta del cliente
+En la pestaña **Revisión técnica**, el cliente puede contestar la solicitud de información del especialista.
+La respuesta se almacena y devuelve el caso a `en_revision_tecnica` sin reescribir los datos ni cálculos anteriores.
+El especialista puede leer el historial y resolver el caso. [Guía RF-05.1](docs/RF05_REVIEW.md).
