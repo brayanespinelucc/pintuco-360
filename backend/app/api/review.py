@@ -86,3 +86,37 @@ async def resolver(solicitud_id: uuid.UUID, payload: ResolverRevision,
     if not isinstance(result, dict) or result.get("solicitud_id") != str(solicitud_id):
         raise HTTPException(status_code=502, detail="La revisión devolvió un formato inválido.")
     return result
+
+
+
+class ResponderCliente(BaseModel):
+    respuesta: str = Field(min_length=10, max_length=3000)
+
+    @model_validator(mode="after")
+    def validar_respuesta(self):
+        if len(self.respuesta.strip()) < 10:
+            raise ValueError("La respuesta debe incluir al menos 10 caracteres de información.")
+        return self
+
+
+@router.post("/solicitudes/{solicitud_id}/responder", status_code=201)
+async def responder_cliente(
+    solicitud_id: uuid.UUID, payload: ResponderCliente,
+    session=Depends(current_user),
+):
+    perfil, token = session
+    if perfil["role"] != "cliente":
+        raise HTTPException(
+            status_code=403,
+            detail="Solo el cliente propietario puede responder información pendiente.",
+        )
+    result = await supabase_rest(
+        "POST", "rpc/responder_revision_tecnica", token,
+        json={
+            "p_solicitud_id": str(solicitud_id),
+            "p_respuesta": payload.respuesta.strip(),
+        },
+    )
+    if not isinstance(result, dict) or result.get("solicitud_id") != str(solicitud_id):
+        raise HTTPException(status_code=502, detail="No se pudo validar el registro de la respuesta.")
+    return result
