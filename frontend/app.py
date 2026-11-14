@@ -137,11 +137,11 @@ if profile["role"] in {"asesor", "especialista_tecnico", "administrador"}:
                 "Solicitar más información": "solicitar_informacion",
                 "Solicitar corrección de un parámetro": "solicitar_correccion",
             }
+            decision_label = st.selectbox(
+                "Decisión", list(opciones_decision), key="decision_humana"
+            )
+            decision = opciones_decision[decision_label]
             with st.form("resolver_revision"):
-                decision_label = st.selectbox(
-                    "Decisión", list(opciones_decision), key="decision_humana"
-                )
-                decision = opciones_decision[decision_label]
                 observaciones = st.text_area(
                     "Justificación técnica (obligatoria)",
                     min_height=120,
