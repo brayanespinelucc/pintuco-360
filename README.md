@@ -93,3 +93,7 @@ El área logística asigna solicitudes despachadas a un usuario `aplicador`; est
 ## RF-08 — Control de calidad académico
 
 Inspector `calidad` revisa las actividades, incidencias y fotografías de RF-07, completa un checklist de cinco criterios y decide **aprobar**, **solicitar corrección** o **rechazar**; dictámenes auditables e inmutables. Ante correcciones, el aplicador puede aportar evidencia y presentar subsanación sin eliminar el dictamen anterior. El cliente consulta el historial en **Control de calidad**. Solo representa una evaluación académica, no certificación oficial. [Guía de RF-08](docs/RF08_QUALITY.md).
+
+## Rediseño del frontend (UX/UI)
+
+COLORLINK incluye un sistema de diseño visual premium en Streamlit con **menú lateral contextual**, pantallas de cliente independientes, navegación específica de logística y calidad, temas claro y oscuro, indicadores y accesos rápidos, además de mejoras de legibilidad y accesibilidad. Los contratos de FastAPI y los permisos existentes se mantienen intactos. Consulta [auditoría, diseño y pruebas del frontend](docs/FRONTEND_REDESIGN.md).
