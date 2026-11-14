@@ -68,3 +68,7 @@ Las pruebas automatizadas usan dobles de prueba y **no prueban una llamada real 
 ## RF-03 — Motor de cálculo
 
 Ya existe la pestaña **Cálculo técnico**, con resultados persistentes y prueba académica de 85 m². El catálogo de ejemplo NO contiene productos ni parámetros oficiales de Pintuco. Consulta [docs/RF03_ENGINE.md](docs/RF03_ENGINE.md).
+
+## RF-04: Disponibilidad de inventario
+
+Ya existe la pestaña Inventario / Disponibilidad: consulta lotes en Supabase, propone cantidades por bodega y etiqueta faltantes para producción. La propuesta NO reserva existencias. Los stocks semilla son académicos, no oficiales de Pintuco. Consulta [docs/RF04_INVENTORY.md](docs/RF04_INVENTORY.md) para el procedimiento de prueba.
