@@ -20,3 +20,12 @@
 
 ## RF-03 a RF-08 / etapas operativas
 - Pendientes: motor técnico, inventario, excepciones, cotizaciones, logística, aplicación, calidad, analítica y orquestación.
+
+## RF-03 — Cálculos determinísticos
+
+- Migración `0005_rf03_technical_calculations.sql`: aplicada en Supabase; dos tablas con RLS, tres políticas.
+- Catálogo: un producto únicamente demostrativo, NO oficial de Pintuco.
+- Motor matemático `Decimal`, endpoints FastAPI y pestaña Streamlit: implementados en código.
+- Pruebas automáticas: agregadas; estado se confirma en CI.
+- Prueba real local con el usuario: **pendiente**.
+- Persistencia trazable habilitada. No están implementadas aprobación técnica, inventarios ni cotizaciones.
