@@ -162,6 +162,17 @@ with st.sidebar:
             key="cl_logistics_page",
             label_visibility="collapsed",
         )
+    elif profile["role"] == "calidad":
+        st.markdown(
+            '<p class="cl-nav-label">Centro de inspecciones</p>',
+            unsafe_allow_html=True,
+        )
+        quality_page = st.radio(
+            "Navegación de calidad",
+            ["Inspecciones pendientes", "Historial de dictámenes"],
+            key="cl_quality_page",
+            label_visibility="collapsed",
+        )
     st.divider()
     st.toggle("Modo oscuro", key="cl_dark", help="Preferencia visual de esta sesión.")
     if st.button("Cerrar sesión", use_container_width=True):
@@ -182,6 +193,12 @@ elif profile["role"] == "logistica":
     page_hero(
         "CENTRO DE OPERACIONES", logistics_page, descriptions[logistics_page],
         chip="LOGÍSTICA · DEMO",
+    )
+elif profile["role"] == "calidad":
+    page_hero(
+        "CENTRO DE INSPECCIONES", quality_page,
+        "Consulta expedientes, evidencias y decisiones humanas auditables.",
+        chip="RF-08 · DEMO",
     )
 else:
     section, title, description = ROLE_PAGES.get(
@@ -380,156 +397,156 @@ if profile["role"] == "calidad":
     )
     if st.session_state.pop("rf08_dictamen_exitoso", False):
         st.success("Dictamen humano de calidad registrado con trazabilidad.")
-    bandeja_calidad = call("GET", "/calidad/bandeja") or []
     expedientes_calidad = call("GET", "/calidad/expedientes") or []
-    st.subheader("Bandeja pendiente de inspección")
-    if not bandeja_calidad:
-        st.info("No hay aplicaciones pendientes de evaluación.")
-    else:
-        st.dataframe(bandeja_calidad, hide_index=True, use_container_width=True)
-        opciones_calidad = {
-            f"{r['nombre_empresa']} · {r['nombre_proyecto']} · "
-            f"{r['aplicacion_id'][:8]}": r["aplicacion_id"]
-            for r in bandeja_calidad
-        }
-        nombre_caso = st.selectbox(
-            "Aplicación para inspeccionar", list(opciones_calidad),
-            key="rf08_inspeccion_caso"
-        )
-        aplicacion_calidad_id = opciones_calidad[nombre_caso]
-        expediente = next(
-            (e for e in expedientes_calidad
-             if e["aplicacion_id"] == aplicacion_calidad_id),
-            None,
-        )
-        if expediente:
-            st.write(
-                f"**Empresa:** {expediente['nombre_empresa']} · "
-                f"**Proyecto:** {expediente['nombre_proyecto']}"
+    if quality_page == "Inspecciones pendientes":
+        bandeja_calidad = call("GET", "/calidad/bandeja") or []
+        st.subheader("Bandeja pendiente de inspección")
+        if not bandeja_calidad:
+            st.info("No hay aplicaciones pendientes de evaluación.")
+        else:
+            st.dataframe(bandeja_calidad, hide_index=True, use_container_width=True)
+            opciones_calidad = {
+                f"{r['nombre_empresa']} · {r['nombre_proyecto']} · "
+                f"{r['aplicacion_id'][:8]}": r["aplicacion_id"]
+                for r in bandeja_calidad
+            }
+            nombre_caso = st.selectbox(
+                "Aplicación para inspeccionar", list(opciones_calidad),
+                key="rf08_inspeccion_caso"
             )
-            st.write(
-                f"**Aplicador:** {expediente['aplicador']} · "
-                f"**Avance:** {expediente['avance_pct']} %"
+            aplicacion_calidad_id = opciones_calidad[nombre_caso]
+            expediente = next(
+                (e for e in expedientes_calidad
+                 if e["aplicacion_id"] == aplicacion_calidad_id),
+                None,
             )
-            st.write(
-                f"**Superficie:** {expediente['tipo_superficie']} · "
-                f"**Ambiente:** {expediente['ambiente']}"
-            )
-            st.write("**Condición reportada:**", expediente["condicion"])
-            st.write("**Despacho simulado:**", expediente["referencia_despacho"])
-            st.subheader("Evidencias, incidencias y actividades")
-            st.caption(
-                "Revisa las actividades y abre las fotografías privadas antes "
-                "de registrar el checklist."
-            )
-            mostrar_bitacora_campo({
-                "id": expediente["aplicacion_id"],
-                "bitacora": expediente["bitacora"],
-            })
-            if expediente.get("inspecciones"):
-                st.write("**Dictámenes anteriores (inmutables)**")
-                st.dataframe(
-                    expediente["inspecciones"], hide_index=True,
-                    use_container_width=True,
+            if expediente:
+                st.write(
+                    f"**Empresa:** {expediente['nombre_empresa']} · "
+                    f"**Proyecto:** {expediente['nombre_proyecto']}"
                 )
-            st.divider()
-            st.subheader("Lista de verificación y dictamen")
-            st.caption(
-                "Marca solo criterios que verificaste en el escenario académico. "
-                "Una aprobación requiere cinco criterios cumplidos y evidencia."
-            )
-            with st.form("rf08_dictamen"):
-                superficie_ok = st.checkbox(
-                    "La preparación de superficie es satisfactoria",
-                    value=False,
+                st.write(
+                    f"**Aplicador:** {expediente['aplicador']} · "
+                    f"**Avance:** {expediente['avance_pct']} %"
                 )
-                cobertura_ok = st.checkbox(
-                    "La cobertura es adecuada", value=False
+                st.write(
+                    f"**Superficie:** {expediente['tipo_superficie']} · "
+                    f"**Ambiente:** {expediente['ambiente']}"
                 )
-                acabado_ok = st.checkbox(
-                    "El acabado es uniforme", value=False
+                st.write("**Condición reportada:**", expediente["condicion"])
+                st.write("**Despacho simulado:**", expediente["referencia_despacho"])
+                st.subheader("Evidencias, incidencias y actividades")
+                st.caption(
+                    "Revisa las actividades y abre las fotografías privadas antes "
+                    "de registrar el checklist."
                 )
-                evidencias_ok = st.checkbox(
-                    "Se revisaron las evidencias fotográficas", value=False
-                )
-                incidencias_ok = st.checkbox(
-                    "Las incidencias están gestionadas", value=False
-                )
-                decision_calidad_label = st.selectbox(
-                    "Decisión del inspector",
-                    [
-                        "Solicitar correcciones",
-                        "Aprobar calidad",
-                        "Rechazar inspección",
-                    ],
-                )
-                observacion_calidad = st.text_area(
-                    "Justificación detallada del dictamen",
-                    max_chars=2000, height=150,
-                    placeholder="Describe hallazgos, criterios revisados y decisión...",
-                )
-                confirmo_evaluacion = st.checkbox(
-                    "Confirmo que este dictamen corresponde al expediente revisado "
-                    "y que es exclusivamente académico."
-                )
-                enviar_dictamen = st.form_submit_button(
-                    "Registrar dictamen humano", type="primary"
-                )
-            if enviar_dictamen:
-                decision_calidad = {
-                    "Solicitar correcciones": "solicitar_correccion",
-                    "Aprobar calidad": "aprobar",
-                    "Rechazar inspección": "rechazar",
-                }[decision_calidad_label]
-                criterios_enviados = {
-                    "superficie_preparada": superficie_ok,
-                    "cobertura_adecuada": cobertura_ok,
-                    "acabado_uniforme": acabado_ok,
-                    "evidencias_verificadas": evidencias_ok,
-                    "incidencias_gestionadas": incidencias_ok,
-                }
-                if not confirmo_evaluacion:
-                    st.warning("Confirma que revisaste el expediente académico.")
-                elif len(observacion_calidad.strip()) < 15:
-                    st.warning("Justifica el dictamen en al menos 15 caracteres.")
-                elif decision_calidad == "aprobar" and not all(criterios_enviados.values()):
-                    st.warning("La aprobación requiere todos los criterios cumplidos.")
-                elif decision_calidad != "aprobar" and all(criterios_enviados.values()):
-                    st.warning("Señala al menos un criterio incumplido.")
-                else:
-                    resultado = call(
-                        "POST",
-                        f"/calidad/aplicaciones/{aplicacion_calidad_id}/resolver",
-                        json={
-                            "decision": decision_calidad,
-                            "criterios": criterios_enviados,
-                            "observaciones": observacion_calidad.strip(),
-                        },
-                    )
-                    if resultado:
-                        st.session_state["rf08_dictamen_exitoso"] = True
-                        st.rerun()
-    st.divider()
-    st.subheader("Histórico de expedientes de calidad")
-    if expedientes_calidad:
-        for e in expedientes_calidad:
-            with st.expander(
-                f"{e['nombre_proyecto']} · {e['estado_solicitud']} · "
-                f"{len(e.get('inspecciones') or [])} inspecciones",
-                expanded=False,
-            ):
-                st.write("**Estado de aplicación:**", e["estado_aplicacion"])
-                st.write("**Avance original:**", f"{e['avance_pct']} %")
-                if e.get("inspecciones"):
+                mostrar_bitacora_campo({
+                    "id": expediente["aplicacion_id"],
+                    "bitacora": expediente["bitacora"],
+                })
+                if expediente.get("inspecciones"):
+                    st.write("**Dictámenes anteriores (inmutables)**")
                     st.dataframe(
-                        e["inspecciones"], hide_index=True, use_container_width=True
+                        expediente["inspecciones"], hide_index=True,
+                        use_container_width=True,
                     )
-                else:
-                    st.caption("Sin decisiones de calidad registradas.")
+                st.divider()
+                st.subheader("Lista de verificación y dictamen")
+                st.caption(
+                    "Marca solo criterios que verificaste en el escenario académico. "
+                    "Una aprobación requiere cinco criterios cumplidos y evidencia."
+                )
+                with st.form("rf08_dictamen"):
+                    superficie_ok = st.checkbox(
+                        "La preparación de superficie es satisfactoria",
+                        value=False,
+                    )
+                    cobertura_ok = st.checkbox(
+                        "La cobertura es adecuada", value=False
+                    )
+                    acabado_ok = st.checkbox(
+                        "El acabado es uniforme", value=False
+                    )
+                    evidencias_ok = st.checkbox(
+                        "Se revisaron las evidencias fotográficas", value=False
+                    )
+                    incidencias_ok = st.checkbox(
+                        "Las incidencias están gestionadas", value=False
+                    )
+                    decision_calidad_label = st.selectbox(
+                        "Decisión del inspector",
+                        [
+                            "Solicitar correcciones",
+                            "Aprobar calidad",
+                            "Rechazar inspección",
+                        ],
+                    )
+                    observacion_calidad = st.text_area(
+                        "Justificación detallada del dictamen",
+                        max_chars=2000, height=150,
+                        placeholder="Describe hallazgos, criterios revisados y decisión...",
+                    )
+                    confirmo_evaluacion = st.checkbox(
+                        "Confirmo que este dictamen corresponde al expediente revisado "
+                        "y que es exclusivamente académico."
+                    )
+                    enviar_dictamen = st.form_submit_button(
+                        "Registrar dictamen humano", type="primary"
+                    )
+                if enviar_dictamen:
+                    decision_calidad = {
+                        "Solicitar correcciones": "solicitar_correccion",
+                        "Aprobar calidad": "aprobar",
+                        "Rechazar inspección": "rechazar",
+                    }[decision_calidad_label]
+                    criterios_enviados = {
+                        "superficie_preparada": superficie_ok,
+                        "cobertura_adecuada": cobertura_ok,
+                        "acabado_uniforme": acabado_ok,
+                        "evidencias_verificadas": evidencias_ok,
+                        "incidencias_gestionadas": incidencias_ok,
+                    }
+                    if not confirmo_evaluacion:
+                        st.warning("Confirma que revisaste el expediente académico.")
+                    elif len(observacion_calidad.strip()) < 15:
+                        st.warning("Justifica el dictamen en al menos 15 caracteres.")
+                    elif decision_calidad == "aprobar" and not all(criterios_enviados.values()):
+                        st.warning("La aprobación requiere todos los criterios cumplidos.")
+                    elif decision_calidad != "aprobar" and all(criterios_enviados.values()):
+                        st.warning("Señala al menos un criterio incumplido.")
+                    else:
+                        resultado = call(
+                            "POST",
+                            f"/calidad/aplicaciones/{aplicacion_calidad_id}/resolver",
+                            json={
+                                "decision": decision_calidad,
+                                "criterios": criterios_enviados,
+                                "observaciones": observacion_calidad.strip(),
+                            },
+                        )
+                        if resultado:
+                            st.session_state["rf08_dictamen_exitoso"] = True
+                            st.rerun()
     else:
-        st.info("Aún no hay expedientes en control de calidad.")
+        st.subheader("Histórico de expedientes de calidad")
+        if expedientes_calidad:
+            for e in expedientes_calidad:
+                with st.expander(
+                    f"{e['nombre_proyecto']} · {e['estado_solicitud']} · "
+                    f"{len(e.get('inspecciones') or [])} inspecciones",
+                    expanded=False,
+                ):
+                    st.write("**Estado de aplicación:**", e["estado_aplicacion"])
+                    st.write("**Avance original:**", f"{e['avance_pct']} %")
+                    if e.get("inspecciones"):
+                        st.dataframe(
+                            e["inspecciones"], hide_index=True, use_container_width=True
+                        )
+                    else:
+                        st.caption("Sin decisiones de calidad registradas.")
+        else:
+            st.info("Aún no hay expedientes en control de calidad.")
     st.stop()
-
 
 if profile["role"] == "aplicador":
     st.subheader("RF-07 · Ejecución y seguimiento en campo")
