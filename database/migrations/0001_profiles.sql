@@ -1,5 +1,5 @@
--- Ejecutar una vez en Supabase SQL Editor.
--- El rol se establece en el servidor; nunca debe poder ser promovido por un cliente.
+-- Migration 0001: perfiles y roles de Pintuco 360.
+-- Crear una tabla segura de perfiles vinculada a Supabase Auth.
 create table if not exists public.profiles (
     id uuid primary key references auth.users (id) on delete cascade,
     full_name text,
@@ -13,16 +13,19 @@ create table if not exists public.profiles (
 );
 
 alter table public.profiles enable row level security;
-
-revoke all on public.profiles from anon, authenticated;
-grant select on public.profiles to authenticated;
+revoke all on table public.profiles from anon, authenticated;
+grant select on table public.profiles to authenticated;
 
 drop policy if exists "Usuarios consultan solo su perfil" on public.profiles;
 create policy "Usuarios consultan solo su perfil"
     on public.profiles for select to authenticated
     using ((select auth.uid()) = id);
 
-create or replace function public.create_profile_for_new_user()
+-- Evita que una función SECURITY DEFINER quede en el esquema público expuesto por la API.
+create schema if not exists private;
+revoke all on schema private from public, anon, authenticated;
+
+create or replace function private.create_profile_for_new_user()
 returns trigger
 language plpgsql
 security definer
@@ -36,17 +39,18 @@ begin
 end;
 $$;
 
+revoke all on function private.create_profile_for_new_user() from public, anon, authenticated;
+
 drop trigger if exists on_auth_user_created_pintuco on auth.users;
 create trigger on_auth_user_created_pintuco
 after insert on auth.users for each row
-execute function public.create_profile_for_new_user();
+execute function private.create_profile_for_new_user();
 
--- Si ya existen usuarios de Auth antes de aplicar esta migración:
+-- Para usuarios creados antes de esta migración:
 insert into public.profiles (id, full_name, role)
 select id, raw_user_meta_data ->> 'full_name', 'cliente'
 from auth.users
 on conflict (id) do nothing;
 
--- Para asignar un rol administrativo, usar exclusivamente SQL Editor con permisos
--- de administrador y un UUID de usuario verificado. Ejemplo:
+-- Asignación de roles privilegiados: solo por SQL Editor con administrador.
 -- update public.profiles set role = 'administrador' where id = 'UUID_REAL';
