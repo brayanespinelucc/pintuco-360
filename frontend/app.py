@@ -4,7 +4,7 @@ from datetime import date, timedelta
 import httpx
 import streamlit as st
 from dotenv import load_dotenv
-from frontend.design import (
+from design import (
     PAGES, ROLE_PAGES, ROLE_LABELS,
     apply_design_system, brand, user_identity, page_hero,
     metric_cards, section_intro,
