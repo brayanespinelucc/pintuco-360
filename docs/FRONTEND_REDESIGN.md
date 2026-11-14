@@ -11,6 +11,7 @@ Se auditó \`frontend/app.py\` (MVP RF-01–RF-08, aproximadamente 1.293 líneas
 - El encabezado de todas las pantallas era «Portal de gestión», sin título ni orientación contextual al perfil o a la tarea.
 - El resumen usaba 3 métricas nativas y una nota obsoleta sobre módulos pendientes, sin accesos rápidos.
 - Logística agrupaba reservas, despacho y asignaciones de campo en una sola vista larga.
+- La vista de calidad mezclaba bandeja pendiente e histórico de inspecciones, incluso después de cerrar un caso.
 - Formas, tablas, estados vacíos y expanders utilizaban sobre todo el tema nativo, sin tokens compartidos.
 - No había selector de apariencia ni una estrategia de movimiento reducido.
 
@@ -41,7 +42,7 @@ La iconografía decorativa es un único juego de trazos SVG inline, de estilo Lu
 
 Archivos:
 - **Nuevo** \`frontend/design.py\`: paletas claro/oscuro, CSS con variables \`--cl-*\`, encabezados contextuales, marca, tarjeta de identidad, iconos SVG, tarjetas KPI y secciones; texto dinámico escapado con \`html.escape\`.
-- **Actualizado** \`frontend/app.py\`: diseño general, inicio de sesión centrado, sidebar con sesión/rol/modo oscuro, encabezados por rol, cliente con 11 **páginas contextuales** en menú vertical, panel resumen con KPIs y accesos rápidos, logística con 3 secciones contextuales.
+- **Actualizado** \`frontend/app.py\`: diseño general, inicio de sesión centrado, sidebar con sesión/rol/modo oscuro, encabezados por rol, cliente con 11 **páginas contextuales** en menú vertical, panel resumen con KPIs y accesos rápidos, logística con 3 secciones contextuales e inspector de calidad con bandeja e histórico separados.
 - **Actualizadas** las pruebas del formulario de RF-05, adaptadas al nuevo menú manteniendo la posición del formulario antes del historial.
 - **Nuevas** pruebas de humo con \`streamlit.testing.v1.AppTest\` que usan respuestas locales de API, sin tocar Supabase.
 
@@ -66,6 +67,10 @@ En la versión anterior, los 11 cuerpos \`st.tabs\` se ejecutaban conjuntamente.
 ### Navegación logística
 
 **Reservas**, **Órdenes y despachos**, **Aplicadores y campo**, preservando los mismos botones y confirmaciones de operación, con carga de datos por sección. La cuenta no gana permisos ni nuevas acciones.
+
+### Navegación inspector
+
+**Inspecciones pendientes** (bandeja, expediente y dictamen) y **Historial de dictámenes** (seguimiento del caso ya aprobado). La bandeja solo se consulta al abrir la sección correspondiente; el historial mantiene las autorizaciones existentes.
 
 ### Componentes
 
