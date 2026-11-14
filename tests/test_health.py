@@ -9,7 +9,7 @@ def test_health_endpoint():
     response = client.get("/api/v1/health")
     assert response.status_code == 200
     assert response.json() == {
-        "status": "ok", "service": "pintuco-360-api", "version": "0.3.0"
+        "status": "ok", "service": "pintuco-360-api", "version": "0.4.0"
     }
 
 

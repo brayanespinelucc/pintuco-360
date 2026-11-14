@@ -84,8 +84,9 @@ if profile["role"] != "cliente":
     st.info("Rol verificado correctamente. Su portal operativo se implementará en las siguientes etapas.")
     st.stop()
 
-tab_dashboard, tab_cliente, tab_proyectos, tab_solicitudes, tab_ia = st.tabs(
-    ["Mi panel", "Mi empresa", "Proyectos", "Solicitudes y fotografías", "Análisis con Gemini"]
+tab_dashboard, tab_cliente, tab_proyectos, tab_solicitudes, tab_ia, tab_tecnico = st.tabs(
+    ["Mi panel", "Mi empresa", "Proyectos", "Solicitudes y fotografías",
+     "Análisis con Gemini", "Cálculo técnico"]
 )
 
 with tab_cliente:
@@ -242,3 +243,72 @@ with tab_ia:
             st.caption(f"Registrado el {actual['created_at'][:19]} UTC. No equivale a diagnóstico técnico.")
         else:
             st.caption("Todavía no hay análisis para esta solicitud.")
+
+
+with tab_tecnico:
+    st.subheader("RF-03 · Cálculo técnico determinístico")
+    st.caption(
+        "El backend calcula los litros usando el área del proyecto y rendimientos "
+        "del catálogo. La IA no realiza operaciones matemáticas."
+    )
+    technical_requests = call("GET", "/capture/solicitudes") or []
+    technical_products = call("GET", "/tecnico/catalogo") or []
+    if not technical_requests:
+        st.info("Primero debes registrar una solicitud.")
+    elif not technical_products:
+        st.info("No hay productos técnicos activos en el catálogo.")
+    else:
+        requests_options = {
+            f"{s['created_at'][:10]} · {s['id'][:8]}": s["id"]
+            for s in technical_requests
+        }
+        selection = st.selectbox("Solicitud", list(requests_options), key="technical_request")
+        request_id = requests_options[selection]
+        catalog_options = {
+            f"{p['nombre']} · {p['presentacion_litros']} litros": p["id"]
+            for p in technical_products
+        }
+        label = st.selectbox("Producto y presentación", list(catalog_options), key="technical_product")
+        product_id = catalog_options[label]
+        product = next(p for p in technical_products if p["id"] == product_id)
+        if product["es_demostrativo"]:
+            st.warning(
+                "Producto y rendimiento de PRUEBA, no oficiales de Pintuco. "
+                "Estos valores no deben utilizarse para compras ni aplicaciones reales."
+            )
+        st.write(
+            f"Rendimiento: **{product['rendimiento_m2_litro_mano']} m²/L por mano** · "
+            f"Manos: **{product['manos_recomendadas']}** · "
+            f"Desperdicio: **{product['desperdicio_pct']} %**"
+        )
+        if st.button("Calcular cantidades", type="primary"):
+            result = call(
+                "POST",
+                f"/tecnico/solicitudes/{request_id}/calcular",
+                json={"producto_id": product_id},
+            )
+            if result:
+                st.success("Cálculo guardado en Supabase.")
+                st.caption(result["advertencia"])
+                if result["requiere_revision_humana"]:
+                    st.warning("Requiere inspección técnica antes de aprobar una recomendación.")
+                st.json(result)
+
+        records = call("GET", f"/tecnico/solicitudes/{request_id}/calculos") or []
+        if records:
+            latest = records[0]
+            st.subheader("Último cálculo registrado")
+            a, b, c = st.columns(3)
+            a.metric("Litros requeridos", f"{latest['litros_con_desperdicio']} L")
+            b.metric("Envases", str(latest["envases"]))
+            c.metric("Litros comerciales", f"{latest['litros_comerciales']} L")
+            st.caption(
+                "Fórmula: (área × manos / rendimiento por mano) × "
+                "(1 + desperdicio / 100). Redondeo de envases por exceso."
+            )
+            if latest["requiere_revision_humana"]:
+                st.warning("Revisión humana: " + "; ".join(latest["motivos_revision"]))
+            if latest["es_demostrativo"]:
+                st.warning("Resultado académico con datos ficticios, NO de producto comercial.")
+            with st.expander("Historial de cálculos"):
+                st.dataframe(records, use_container_width=True, hide_index=True)
