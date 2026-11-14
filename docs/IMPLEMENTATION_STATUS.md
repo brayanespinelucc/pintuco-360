@@ -86,3 +86,10 @@
 - SQL con ROLLBACK verificó aprobación, rechazo, correcciones, reinspección y permisos; el caso real permanece `en_calidad`.
 - Prueba de usuario pendiente: crear quinta cuenta de rol `calidad` y ejecutar el primer dictamen.
 - Evaluación exclusivamente académica; no hay certificación de obra real.
+
+## Rediseño UX/UI — Frontend premium
+- Rediseño solo de `frontend/app.py` y nuevo sistema reutilizable `frontend/design.py`.
+- Cliente con 11 páginas contextuales y carga selectiva; logística con 3 vistas e inspector con bandeja e historial separados.
+- Diseño coherente, responsive CSS, accesos rápidos, indicadores KPI, modo oscuro por sesión y movimiento reducido.
+- Pruebas de humo Streamlit AppTest de rutas visuales y roles, sin cambios en Backend, Supabase o infraestructura.
+- La revisión visual con usuarios y dispositivos reales permanece pendiente.
