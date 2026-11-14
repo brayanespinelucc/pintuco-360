@@ -63,3 +63,32 @@ where u.email = 'CORREO_DEL_SEGUNDO_USUARIO';
 - No hay carga de correcciones desde la cuenta cliente; las solicitudes de corrección quedan a la espera de ese desarrollo.
 - No se incluyen notificaciones ni workflows de n8n; serán fases siguientes.
 - Los productos e inventarios son académicos y no representan servicios reales de Pintuco.
+
+## RF-05.1 — Respuesta del cliente y regreso a revisión
+
+**Versión 0.6.1.** El cliente propietario puede responder a una revisión cuyo estado es `pendiente_informacion`.
+Se almacena el texto, autor, fecha y revisión a la que responde en `public.respuestas_revision_cliente`.
+La RPC `public.responder_revision_tecnica` utiliza la función privada `private.rf05_responder_cliente` con validación `auth.uid()`, rol `cliente`, propiedad y estado.
+Con bloqueo de la solicitud y `UNIQUE(revision_id)` se rechazan respuestas duplicadas.
+La respuesta cambia el estado a `en_revision_tecnica` sin alterar el proyecto ni los cálculos previos.
+El especialista puede ver el historial `respuestas_cliente` en el detalle del caso.
+
+### API
+POST `/api/v1/revision/solicitudes/{uuid}/responder`
+```json
+{"respuesta":"La humedad apareció tras las lluvias y solicito una inspección técnica."}
+```
+
+### Prueba manual
+
+1. Actualiza la rama `feat/base-plataforma-pintuco360` y reconstruye Docker Compose.
+2. Inicia sesión como cliente en http://localhost:8501, abre Revisión técnica y selecciona la solicitud pendiente.
+3. Lee las observaciones del especialista, escribe una respuesta de al menos 10 caracteres y pulsa Enviar respuesta al especialista.
+4. Verifica que el nuevo estado sea `en_revision_tecnica` y que la respuesta aparezca en el historial.
+5. Inicia sesión como especialista: el caso debe aparecer en la bandeja con la nueva respuesta y permitir otra decisión.
+
+### Alcance y limitaciones
+Las respuestas son únicamente textuales. No se admiten nuevas evidencias en este formulario.
+No se modifican parámetros técnicos, rendimientos, cálculos, existencias ni se reservan materiales.
+El flujo no reemplaza una revisión técnica real de una obra.
+Las pruebas SQL de permisos y transición se ejecutaron y revirtieron para preservar los datos del usuario.
