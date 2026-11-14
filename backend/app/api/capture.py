@@ -85,8 +85,24 @@ async def supabase_rest(method: str, table: str, token: str, *, params=None, jso
     if response.status_code in (401, 403):
         raise HTTPException(status_code=403, detail="Acceso denegado al recurso.")
     if response.status_code >= 400:
-        raise HTTPException(status_code=422 if response.status_code == 409 else 502,
-                            detail="No se pudo completar la operación en la base de datos.")
+        # No filtrar trazas o consultas SQL del proveedor al navegador.
+        try:
+            db_code = response.json().get("code")
+        except (ValueError, AttributeError):
+            db_code = None
+        if db_code == "42501":
+            raise HTTPException(status_code=403, detail="No tienes permisos para esta operación.")
+        if db_code == "23514":
+            raise HTTPException(
+                status_code=409,
+                detail="La operación no cumple las condiciones del flujo o ya fue resuelta.",
+            )
+        if db_code == "22023":
+            raise HTTPException(status_code=422, detail="La información enviada no es válida.")
+        raise HTTPException(
+            status_code=422 if response.status_code == 409 else 502,
+            detail="No se pudo completar la operación en la base de datos.",
+        )
     try:
         return response.json()
     except ValueError as exc:
