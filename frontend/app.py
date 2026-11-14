@@ -312,3 +312,68 @@ with tab_tecnico:
                 st.warning("Resultado académico con datos ficticios, NO de producto comercial.")
             with st.expander("Historial de cálculos"):
                 st.dataframe(records, use_container_width=True, hide_index=True)
+
+
+with tab_inventario:
+    st.subheader("RF-04 · Disponibilidad por bodegas y lotes")
+    st.info(
+        "Consulta existencias en Supabase y propone lotes por fecha de vencimiento. "
+        "NO reserva ni descuenta stock. Los lotes iniciales son académicos."
+    )
+    solicitudes_stock = call("GET", "/capture/solicitudes") or []
+    if not solicitudes_stock:
+        st.warning("Primero registra una solicitud y calcula materiales.")
+    else:
+        opciones_solicitudes = {
+            f"{s['created_at'][:10]} · {s['id'][:8]}": s["id"]
+            for s in solicitudes_stock
+        }
+        seleccion = st.selectbox("Solicitud", list(opciones_solicitudes), key="stock_request")
+        solicitud_stock_id = opciones_solicitudes[seleccion]
+        calculos_stock = call("GET", f"/tecnico/solicitudes/{solicitud_stock_id}/calculos") or []
+        if not calculos_stock:
+            st.info("Primero realiza el cálculo en la pestaña RF-03.")
+        else:
+            opciones_calculo = {
+                f"{c['created_at'][:16]} · {c['envases']} envases de {c['presentacion_litros']} L": c["id"]
+                for c in calculos_stock
+            }
+            seleccionado = st.selectbox(
+                "Cálculo técnico", list(opciones_calculo), key="stock_calc"
+            )
+            calculo_id = opciones_calculo[seleccionado]
+            if st.button("Consultar disponibilidad", type="primary"):
+                propuesta = call(
+                    "POST", f"/inventario/solicitudes/{solicitud_stock_id}/evaluar",
+                    json={"calculo_id": calculo_id},
+                )
+                if propuesta:
+                    st.success("Disponibilidad consultada y evaluación registrada.")
+            historial = call(
+                "GET", f"/inventario/solicitudes/{solicitud_stock_id}/evaluaciones"
+            ) or []
+            if historial:
+                ultima = historial[0]
+                st.subheader("Última evaluación")
+                col_a, col_b, col_c, col_d = st.columns(4)
+                col_a.metric("Envases requeridos", ultima["envases_requeridos"])
+                col_b.metric("Envases disponibles", ultima["envases_disponibles"])
+                col_c.metric("Envases propuestos", ultima["envases_propuestos"])
+                col_d.metric("Envases faltantes", ultima["envases_faltantes"])
+                if ultima["decision"] == "inventario_disponible":
+                    st.success("Stock suficiente para proponer asignación de lotes.")
+                else:
+                    st.warning("Inventario insuficiente: evaluar producción o reposición.")
+                if ultima["requiere_revision_humana"]:
+                    st.warning("El caso requiere revisión técnica previa a aprobación o despacho.")
+                st.caption(
+                    "Propuesta PROVISIONAL: no representa reserva. "
+                    "Inventario demostrativo, no oficial de Pintuco."
+                )
+                if ultima["propuestas_lotes"]:
+                    st.write("**Lotes propuestos — FEFO**")
+                    st.dataframe(
+                        ultima["propuestas_lotes"], use_container_width=True, hide_index=True
+                    )
+                with st.expander("Historial de disponibilidad"):
+                    st.dataframe(historial, use_container_width=True, hide_index=True)
