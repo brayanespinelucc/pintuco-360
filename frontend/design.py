@@ -296,9 +296,12 @@ hr { border-color: var(--cl-border); }
  transition-duration:.01ms !important; scroll-behavior:auto !important; }
 }
 """
-    st.markdown(
-        f'<span id="{marker}" aria-hidden="true" style="display:none"></span><style>{css}</style>',
-        unsafe_allow_html=True,
+    # st.markdown interpreta HTML inline mezclado con <style> como Markdown.
+    # st.html aplica los estilos sin mostrar CSS como texto en la página.
+    # La etiqueta del tema sigue dentro del mismo árbol DOM de Streamlit.
+    st.html(
+        f'<span id="{marker}" aria-hidden="true" style="display:none"></span>'
+        f'<style>{css}</style>'
     )
 
 
