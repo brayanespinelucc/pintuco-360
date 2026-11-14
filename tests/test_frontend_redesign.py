@@ -117,3 +117,29 @@ def test_dark_theme_switch_does_not_change_api_or_role(api):
     assert ("GET", "/auth/me") in received
     assert any("cl-theme-dark" in item.value for item in app.markdown)
     assert all(method == "GET" for method, path in received)
+
+
+def test_logistics_navigation_lazily_loads_each_operational_stage(api):
+    received, roles = api
+    roles["role"] = "logistica"
+    app = _open_app()
+    assert list(app.radio[0].options) == [
+        "Reservas", "Órdenes y despachos", "Aplicadores y campo",
+    ]
+    assert ("GET", "/logistica/bandeja") in received
+    assert ("GET", "/logistica/ordenes") not in received
+    assert ("GET", "/campo/aplicaciones") not in received
+
+    received.clear()
+    app.radio[0].set_value("Órdenes y despachos").run()
+    assert not app.exception
+    assert ("GET", "/logistica/ordenes") in received
+    assert ("GET", "/logistica/bandeja") not in received
+
+    received.clear()
+    app.radio[0].set_value("Aplicadores y campo").run()
+    assert not app.exception
+    assert ("GET", "/campo/aplicaciones") in received
+    assert ("GET", "/campo/elegibles") in received
+    assert ("GET", "/campo/aplicadores") in received
+    assert ("GET", "/logistica/ordenes") not in received
