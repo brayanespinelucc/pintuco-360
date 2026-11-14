@@ -64,3 +64,7 @@ python -m compileall -q backend frontend
 Las pruebas automatizadas usan dobles de prueba y **no prueban una llamada real a la API de Google**.
 
 **Si Gemini devuelve HTTP 404:** verifica que tu `.env` **local** contenga `GEMINI_MODEL=gemini-3.5-flash-lite` (no basta cambiar `.env.example`), reinicia Docker y vuelve a ejecutar el análisis. Algunas claves recientes no tienen acceso a Gemini 2.5.
+
+## RF-03 — Motor de cálculo
+
+Ya existe la pestaña **Cálculo técnico**, con resultados persistentes y prueba académica de 85 m². El catálogo de ejemplo NO contiene productos ni parámetros oficiales de Pintuco. Consulta [docs/RF03_ENGINE.md](docs/RF03_ENGINE.md).
