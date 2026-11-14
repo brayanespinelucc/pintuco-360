@@ -143,3 +143,20 @@ def test_logistics_navigation_lazily_loads_each_operational_stage(api):
     assert ("GET", "/campo/elegibles") in received
     assert ("GET", "/campo/aplicadores") in received
     assert ("GET", "/logistica/ordenes") not in received
+
+
+def test_inspector_queue_and_history_use_the_same_authorized_read_api(api):
+    received, roles = api
+    roles["role"] = "calidad"
+    app = _open_app()
+    assert list(app.radio[0].options) == [
+        "Inspecciones pendientes", "Historial de dictámenes",
+    ]
+    assert ("GET", "/calidad/bandeja") in received
+    assert ("GET", "/calidad/expedientes") in received
+
+    received.clear()
+    app.radio[0].set_value("Historial de dictámenes").run()
+    assert not app.exception
+    assert ("GET", "/calidad/expedientes") in received
+    assert ("GET", "/calidad/bandeja") not in received
