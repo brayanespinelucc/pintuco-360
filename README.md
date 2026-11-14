@@ -72,3 +72,7 @@ Ya existe la pestaña **Cálculo técnico**, con resultados persistentes y prueb
 ## RF-04: Disponibilidad de inventario
 
 Ya existe la pestaña Inventario / Disponibilidad: consulta lotes en Supabase, propone cantidades por bodega y etiqueta faltantes para producción. La propuesta NO reserva existencias. Los stocks semilla son académicos, no oficiales de Pintuco. Consulta [docs/RF04_INVENTORY.md](docs/RF04_INVENTORY.md) para el procedimiento de prueba.
+
+## RF-05 — Revisión humana por especialista
+
+El asesor/especialista puede examinar información de la solicitud, Gemini, el motor técnico y los lotes propuestos; aprobar, rechazar o solicitar información/correcciones. Cada decisión queda auditada. La cuenta cliente únicamente consulta sus propias decisiones. **Para probar los permisos hace falta un segundo usuario con rol especialista_tecnico**; no conviertas la cuenta cliente actual. Consulta [docs/RF05_REVIEW.md](docs/RF05_REVIEW.md) para el alta del asesor, SQL de rol y prueba paso a paso. La aprobación no reserva inventario.
