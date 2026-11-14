@@ -46,7 +46,7 @@ def call(method, path, *, json=None, files=None):
 
 
 st.markdown('<span class="brand">COLORLINK · PINTUCO 360</span>', unsafe_allow_html=True)
-st.caption("Plataforma académica · No es un portal oficial de Pintuco · Interfaz 0.6.2")
+st.caption("Plataforma académica · No es un portal oficial de Pintuco · Interfaz 0.7.0")
 
 if not st.session_state.get("access_token"):
     st.title("Iniciar sesión")
@@ -80,6 +80,127 @@ with st.sidebar:
         st.rerun()
 
 st.title("Portal de gestión")
+if profile["role"] == "logistica":
+    st.subheader("RF-06 · Logística académica")
+    st.warning(
+        "Simulación con bodegas y lotes DEMOSTRATIVOS. "
+        "Las reservas y despachos modificarán únicamente los saldos de prueba."
+    )
+    if st.session_state.pop("rf06_exito", False):
+        st.success("Operación registrada en Supabase y sujeta a auditoría.")
+    st.caption(
+        "Se puede reservar solo una solicitud aprobada. "
+        "La secuencia es RESERVAR → PREPARAR → DESPACHAR. "
+        "Una reserva puede cancelarse antes de despachar."
+    )
+
+    pendientes_logistica = call("GET", "/logistica/bandeja") or []
+    st.subheader("Solicitudes aprobadas por reservar")
+    if pendientes_logistica:
+        st.dataframe(pendientes_logistica, use_container_width=True, hide_index=True)
+        opciones_pendientes = {
+            f"{p['nombre_empresa']} · {p['nombre_proyecto']} · "
+            f"{p['envases_requeridos']} envases": p["solicitud_id"]
+            for p in pendientes_logistica
+        }
+        seleccion_pendiente = st.selectbox(
+            "Solicitud aprobada", list(opciones_pendientes), key="rf06_solicitud"
+        )
+        solicitud_logistica_id = opciones_pendientes[seleccion_pendiente]
+        actual_pendiente = next(
+            p for p in pendientes_logistica
+            if p["solicitud_id"] == solicitud_logistica_id
+        )
+        st.write(
+            f"**Envases requeridos:** {actual_pendiente['envases_requeridos']} · "
+            f"**Disponibles ahora:** {actual_pendiente['disponibles_ahora']}"
+        )
+        if actual_pendiente["disponibles_ahora"] < actual_pendiente["envases_requeridos"]:
+            st.warning("No alcanza el stock actual. No se permitirá una reserva parcial.")
+        with st.form("rf06_reservar"):
+            observacion_reserva = st.text_area(
+                "Observación de reserva",
+                value="Reserva académica de materiales para la solicitud aprobada.",
+                max_chars=1000, height=100,
+            )
+            enviar_reserva = st.form_submit_button(
+                "Reservar envases", type="primary"
+            )
+        if enviar_reserva:
+            result = call(
+                "POST", f"/logistica/solicitudes/{solicitud_logistica_id}/reservar",
+                json={"observaciones": observacion_reserva.strip()},
+            )
+            if result:
+                st.session_state["rf06_exito"] = True
+                st.rerun()
+    else:
+        st.info("No hay solicitudes aprobadas pendientes de reserva.")
+
+    st.divider()
+    st.subheader("Órdenes logísticas y trazabilidad")
+    ordenes_activas = call("GET", "/logistica/ordenes") or []
+    if ordenes_activas:
+        etiquetas_ordenes = {
+            f"{o['nombre_empresa']} · {o['id'][:8]} · {o['estado']}": o["id"]
+            for o in ordenes_activas
+        }
+        nombre_orden = st.selectbox(
+            "Seleccionar orden", list(etiquetas_ordenes), key="rf06_orden"
+        )
+        orden_id = etiquetas_ordenes[nombre_orden]
+        orden = next(o for o in ordenes_activas if o["id"] == orden_id)
+        st.write(
+            f"**Estado:** {orden['estado']} · "
+            f"**Envases:** {orden['envases_requeridos']} · "
+            f"**Solicitud:** {orden['estado_solicitud']}"
+        )
+        if orden.get("referencia_despacho"):
+            st.write("**Referencia de despacho simulada:**", orden["referencia_despacho"])
+        if orden.get("lotes"):
+            st.write("**Lotes asociados**")
+            st.dataframe(orden["lotes"], use_container_width=True, hide_index=True)
+        if orden.get("eventos"):
+            with st.expander("Historial de eventos"):
+                st.dataframe(orden["eventos"], use_container_width=True, hide_index=True)
+
+        acciones_posibles = {
+            "reservada": {"Preparar envases": "preparar", "Cancelar reserva": "cancelar"},
+            "preparada": {"Despachar (simulado)": "despachar", "Cancelar reserva": "cancelar"},
+        }.get(orden["estado"], {})
+        if acciones_posibles:
+            nombre_accion = st.selectbox(
+                "Siguiente operación", list(acciones_posibles), key="rf06_accion"
+            )
+            accion_logistica = acciones_posibles[nombre_accion]
+            with st.form("rf06_operacion"):
+                observacion_accion = st.text_area(
+                    "Observaciones de la operación",
+                    value="Se registra la operación logística académica con trazabilidad.",
+                    max_chars=1000, height=100,
+                )
+                ejecutar_accion = st.form_submit_button(
+                    "Registrar operación", type="primary"
+                )
+            if ejecutar_accion:
+                resultado = call(
+                    "POST", f"/logistica/ordenes/{orden_id}/accion",
+                    json={
+                        "accion": accion_logistica,
+                        "observaciones": observacion_accion.strip(),
+                    },
+                )
+                if resultado:
+                    st.session_state["rf06_exito"] = True
+                    st.rerun()
+        elif orden["estado"] == "despachada":
+            st.success("Despacho académico finalizado; la solicitud pasa a RF-07.")
+        else:
+            st.info("La reserva fue cancelada; se puede crear otra si la solicitud está aprobada.")
+    else:
+        st.info("Todavía no hay órdenes de logística registradas.")
+    st.stop()
+
 if profile["role"] in {"asesor", "especialista_tecnico", "administrador"}:
     st.subheader("RF-05 · Bandeja del asesor técnico")
     st.caption(
@@ -197,9 +318,9 @@ if profile["role"] != "cliente":
     st.info("Este rol aún no tiene una pantalla operativa.")
     st.stop()
 
-tab_dashboard, tab_revision, tab_cliente, tab_proyectos, tab_solicitudes, tab_ia, tab_tecnico, tab_inventario = st.tabs(
+tab_dashboard, tab_revision, tab_cliente, tab_proyectos, tab_solicitudes, tab_ia, tab_tecnico, tab_inventario, tab_seguimiento = st.tabs(
     ["Mi panel", "Revisión técnica", "Mi empresa", "Proyectos", "Solicitudes y fotografías",
-     "Análisis con Gemini", "Cálculo técnico", "Inventario / Disponibilidad"]
+     "Análisis con Gemini", "Cálculo técnico", "Inventario / Disponibilidad", "Seguimiento logístico"]
 )
 
 with tab_cliente:
@@ -598,3 +719,42 @@ with tab_revision:
                         st.caption(
                             "Revisión relacionada: " + respuesta["revision_id"][:8]
                         )
+
+
+
+with tab_seguimiento:
+    st.subheader("RF-06 · Seguimiento logístico de mis solicitudes")
+    st.caption(
+        "Solo se muestran las órdenes de tus solicitudes. "
+        "La reserva y el despacho requieren un operador autorizado."
+    )
+    mis_ordenes = call("GET", "/logistica/ordenes") or []
+    if not mis_ordenes:
+        st.info("No tienes órdenes logísticas registradas. El proceso empieza tras la aprobación.")
+    else:
+        for mi_orden in mis_ordenes:
+            with st.expander(
+                f"{mi_orden['nombre_proyecto']} · {mi_orden['estado']} · "
+                f"{mi_orden['created_at'][:16]}",
+                expanded=(mi_orden == mis_ordenes[0]),
+            ):
+                st.write("**Estado de logística:**", mi_orden["estado"])
+                st.write("**Envases:**", mi_orden["envases_requeridos"])
+                if mi_orden.get("referencia_despacho"):
+                    st.write(
+                        "**Referencia de despacho de prueba:**",
+                        mi_orden["referencia_despacho"],
+                    )
+                if mi_orden.get("lotes"):
+                    st.dataframe(
+                        mi_orden["lotes"], use_container_width=True, hide_index=True
+                    )
+                if mi_orden.get("eventos"):
+                    st.write("**Eventos registrados**")
+                    st.dataframe(
+                        mi_orden["eventos"], use_container_width=True, hide_index=True
+                    )
+                st.warning(
+                    "Operación únicamente académica: sin transportadora, "
+                    "guía oficial ni inventario comercial de Pintuco."
+                )
