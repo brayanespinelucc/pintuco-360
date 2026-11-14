@@ -22,12 +22,12 @@ st.markdown(
 )
 
 
-def call(method, path, *, json=None, files=None):
+def call(method, path, *, json=None, files=None, data=None):
     token = st.session_state.get("access_token")
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     try:
         response = httpx.request(method, f"{API}/api/v1{path}", headers=headers,
-                                 json=json, files=files, timeout=95)
+                                 json=json, files=files, data=data, timeout=95)
     except httpx.RequestError:
         st.error("No hay conexión con el backend FastAPI.")
         return None
@@ -45,8 +45,54 @@ def call(method, path, *, json=None, files=None):
     return response.json()
 
 
+def foto_campo(path):
+    token = st.session_state.get("access_token")
+    if not token:
+        return None
+    try:
+        res = httpx.get(
+            f"{API}/api/v1{path}",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=40,
+        )
+    except httpx.RequestError:
+        st.error("No se pudo conectar para leer la fotografía.")
+        return None
+    if res.status_code != 200:
+        st.error(f"No se pudo abrir la fotografía ({res.status_code}).")
+        return None
+    if res.headers.get("content-type", "").split(";")[0] not in ("image/png", "image/jpeg"):
+        st.error("El servidor devolvió un formato de fotografía inválido.")
+        return None
+    return res.content
+
+
+def mostrar_bitacora_campo(app):
+    if not app.get("bitacora"):
+        st.caption("Todavía no hay actividades registradas.")
+        return
+    for entrada in app["bitacora"]:
+        with st.expander(
+            f"{entrada['created_at'][:19]} · {entrada['tipo']} · "
+            f"{entrada['avance_pct']}%",
+            expanded=False,
+        ):
+            st.write(entrada["observaciones"])
+            if entrada.get("foto_path"):
+                if st.button(
+                    "Ver fotografía privada",
+                    key=f"rf07_foto_{entrada['id']}",
+                ):
+                    contenido = foto_campo(
+                        f"/campo/aplicaciones/{app['id']}/evidencias/"
+                        f"{entrada['id']}/imagen"
+                    )
+                    if contenido:
+                        st.image(contenido, caption="Evidencia de campo académica")
+
+
 st.markdown('<span class="brand">COLORLINK · PINTUCO 360</span>', unsafe_allow_html=True)
-st.caption("Plataforma académica · No es un portal oficial de Pintuco · Interfaz 0.7.0")
+st.caption("Plataforma académica · No es un portal oficial de Pintuco · Interfaz 0.8.0")
 
 if not st.session_state.get("access_token"):
     st.title("Iniciar sesión")
@@ -199,6 +245,195 @@ if profile["role"] == "logistica":
             st.info("La reserva fue cancelada; se puede crear otra si la solicitud está aprobada.")
     else:
         st.info("Todavía no hay órdenes de logística registradas.")
+
+    st.divider()
+    st.subheader("RF-07 · Asignación de trabajos de campo")
+    st.caption(
+        "Asigna las solicitudes con despacho confirmado a una cuenta aplicador. "
+        "La asignación es académica y no constituye programación de una visita real."
+    )
+    elegibles_campo = call("GET", "/campo/elegibles") or []
+    usuarios_aplicadores = call("GET", "/campo/aplicadores") or []
+    if not usuarios_aplicadores:
+        st.info("Crea una cuenta con rol aplicador para habilitar las asignaciones.")
+    if elegibles_campo and usuarios_aplicadores:
+        st.dataframe(elegibles_campo, use_container_width=True, hide_index=True)
+        opciones_trabajo = {
+            f"{c['nombre_empresa']} · {c['nombre_proyecto']} · {c['solicitud_id'][:8]}":
+                c["solicitud_id"]
+            for c in elegibles_campo
+        }
+        opciones_aplicador = {
+            f"{a['nombre']} · {a['id'][:8]}": a["id"]
+            for a in usuarios_aplicadores
+        }
+        with st.form("rf07_asignar"):
+            caso_asignar_label = st.selectbox(
+                "Solicitud despachada", list(opciones_trabajo), key="rf07_solicitud_asignar"
+            )
+            usuario_aplicar_label = st.selectbox(
+                "Aplicador responsable", list(opciones_aplicador)
+            )
+            nota_asignacion = st.text_area(
+                "Observaciones de la asignación",
+                value="Asignación académica para seguimiento y aplicación en campo simulado.",
+                max_chars=1500, height=95,
+            )
+            enviar_asignacion = st.form_submit_button(
+                "Asignar al aplicador", type="primary"
+            )
+        if enviar_asignacion:
+            asignado = call(
+                "POST",
+                f"/campo/solicitudes/{opciones_trabajo[caso_asignar_label]}/asignar",
+                json={
+                    "aplicador_id": opciones_aplicador[usuario_aplicar_label],
+                    "observaciones": nota_asignacion.strip(),
+                },
+            )
+            if asignado:
+                st.session_state["rf07_asignacion_exitosa"] = True
+                st.rerun()
+    elif not elegibles_campo:
+        st.info("No hay nuevas solicitudes despachadas pendientes de asignación.")
+    if st.session_state.pop("rf07_asignacion_exitosa", False):
+        st.success("Aplicador asignado y evento registrado en Supabase.")
+    trabajos_campo_logistica = call("GET", "/campo/aplicaciones") or []
+    if trabajos_campo_logistica:
+        st.write("**Seguimiento de los aplicadores**")
+        for trabajo in trabajos_campo_logistica:
+            with st.expander(
+                f"{trabajo['nombre_proyecto']} · {trabajo['aplicador']} · "
+                f"{trabajo['estado']} · {trabajo['avance_pct']}%",
+                expanded=False,
+            ):
+                st.progress(trabajo["avance_pct"] / 100)
+                mostrar_bitacora_campo(trabajo)
+    st.stop()
+
+if profile["role"] == "aplicador":
+    st.subheader("RF-07 · Ejecución y seguimiento en campo")
+    st.warning(
+        "Este flujo representa una simulación universitaria. No reemplaza "
+        "inspecciones, instrucciones de seguridad ni aplicación técnica real."
+    )
+    if st.session_state.pop("rf07_evento_exitoso", False):
+        st.success("Actividad registrada en Supabase.")
+    trabajos = call("GET", "/campo/aplicaciones") or []
+    if not trabajos:
+        st.info("Todavía no tienes trabajos asignados por logística.")
+    else:
+        opciones_trabajos = {
+            f"{t['nombre_proyecto']} · {t['estado']} · {t['id'][:8]}": t["id"]
+            for t in trabajos
+        }
+        trabajo_label = st.selectbox(
+            "Trabajo asignado", list(opciones_trabajos), key="rf07_trabajo_aplicador"
+        )
+        trabajo_id = opciones_trabajos[trabajo_label]
+        trabajo = next(t for t in trabajos if t["id"] == trabajo_id)
+        st.write(
+            f"**Empresa:** {trabajo['nombre_empresa']} · "
+            f"**Proyecto:** {trabajo['nombre_proyecto']}"
+        )
+        st.write("**Estado:**", trabajo["estado"])
+        st.write("**Despacho académico:**", trabajo["referencia_despacho"])
+        st.metric("Avance registrado", f"{trabajo['avance_pct']} %")
+        st.progress(trabajo["avance_pct"] / 100)
+        if trabajo["estado"] == "asignada":
+            st.subheader("Iniciar actividad")
+            with st.form("rf07_inicio"):
+                nota_inicio = st.text_area(
+                    "Observaciones de inicio",
+                    value="Inicio académico de actividades; revisión visual de la superficie y materiales.",
+                    max_chars=1500, height=100,
+                )
+                iniciar = st.form_submit_button("Registrar inicio", type="primary")
+            if iniciar:
+                result = call(
+                    "POST", f"/campo/aplicaciones/{trabajo_id}/eventos",
+                    json={
+                        "tipo": "inicio", "avance_pct": None,
+                        "observaciones": nota_inicio.strip(),
+                    },
+                )
+                if result:
+                    st.session_state["rf07_evento_exitoso"] = True
+                    st.rerun()
+        elif trabajo["estado"] == "en_ejecucion":
+            st.subheader("Registrar actividad de campo")
+            acciones = {"Registrar avance": "avance", "Reportar incidencia": "incidencia"}
+            if trabajo["avance_pct"] > 0:
+                acciones["Finalizar y enviar a calidad"] = "finalizacion"
+            if trabajo["avance_pct"] >= 99:
+                acciones.pop("Registrar avance", None)
+            accion_label = st.selectbox("Actividad", list(acciones), key="rf07_tipo_evento")
+            tipo_accion = acciones[accion_label]
+            with st.form("rf07_actividad"):
+                progreso_nuevo = None
+                if tipo_accion == "avance":
+                    progreso_nuevo = st.number_input(
+                        "Porcentaje de avance acumulado",
+                        min_value=trabajo["avance_pct"] + 1,
+                        max_value=99,
+                        value=min(99, max(trabajo["avance_pct"] + 10, 1)),
+                        step=1,
+                    )
+                nota_actividad = st.text_area(
+                    "Descripción y observaciones",
+                    placeholder="Describe el trabajo realizado, incidencias o comprobaciones...",
+                    max_chars=1500, height=140,
+                )
+                registrar_actividad = st.form_submit_button(
+                    "Guardar actividad", type="primary"
+                )
+            if registrar_actividad:
+                respuesta = call(
+                    "POST", f"/campo/aplicaciones/{trabajo_id}/eventos",
+                    json={
+                        "tipo": tipo_accion, "avance_pct": progreso_nuevo,
+                        "observaciones": nota_actividad.strip(),
+                    },
+                )
+                if respuesta:
+                    st.session_state["rf07_evento_exitoso"] = True
+                    st.rerun()
+
+            st.divider()
+            st.subheader("Añadir fotografía de campo (opcional)")
+            with st.form("rf07_evidencia"):
+                foto = st.file_uploader(
+                    "Fotografía JPG o PNG (máx. 5 MB)",
+                    type=["jpg", "jpeg", "png"], key="rf07_foto_subir"
+                )
+                nota_foto = st.text_area(
+                    "Descripción de la evidencia",
+                    max_chars=1500, height=100,
+                )
+                guardar_foto = st.form_submit_button("Guardar fotografía")
+            if guardar_foto:
+                if foto is None:
+                    st.warning("Selecciona primero una fotografía.")
+                elif len(nota_foto.strip()) < 10:
+                    st.warning("Describe la fotografía en al menos 10 caracteres.")
+                else:
+                    guardada = call(
+                        "POST", f"/campo/aplicaciones/{trabajo_id}/evidencias",
+                        files={"archivo": (
+                            foto.name, foto.getvalue(), foto.type or "image/jpeg"
+                        )},
+                        data={"observaciones": nota_foto.strip()},
+                    )
+                    if guardada:
+                        st.session_state["rf07_evento_exitoso"] = True
+                        st.rerun()
+        else:
+            st.success(
+                "Ejecución completada al 100 %. Caso enviado a control de calidad RF-08."
+            )
+        st.divider()
+        st.subheader("Bitácora cronológica")
+        mostrar_bitacora_campo(trabajo)
     st.stop()
 
 if profile["role"] in {"asesor", "especialista_tecnico", "administrador"}:
@@ -318,9 +553,10 @@ if profile["role"] != "cliente":
     st.info("Este rol aún no tiene una pantalla operativa.")
     st.stop()
 
-tab_dashboard, tab_revision, tab_cliente, tab_proyectos, tab_solicitudes, tab_ia, tab_tecnico, tab_inventario, tab_seguimiento = st.tabs(
+tab_dashboard, tab_revision, tab_cliente, tab_proyectos, tab_solicitudes, tab_ia, tab_tecnico, tab_inventario, tab_seguimiento, tab_campo = st.tabs(
     ["Mi panel", "Revisión técnica", "Mi empresa", "Proyectos", "Solicitudes y fotografías",
-     "Análisis con Gemini", "Cálculo técnico", "Inventario / Disponibilidad", "Seguimiento logístico"]
+     "Análisis con Gemini", "Cálculo técnico", "Inventario / Disponibilidad",
+     "Seguimiento logístico", "Aplicación en campo"]
 )
 
 with tab_cliente:
@@ -758,3 +994,33 @@ with tab_seguimiento:
                     "Operación únicamente académica: sin transportadora, "
                     "guía oficial ni inventario comercial de Pintuco."
                 )
+
+
+
+with tab_campo:
+    st.subheader("RF-07 · Seguimiento de la aplicación de mis proyectos")
+    st.caption(
+        "Consulta el avance, las incidencias y las fotografías del aplicador asignado. "
+        "No puedes modificar los reportes del personal de campo."
+    )
+    mis_trabajos = call("GET", "/campo/aplicaciones") or []
+    if not mis_trabajos:
+        st.info(
+            "Tu solicitud está despachada; la asignación del aplicador "
+            "se registrará en esta sección cuando logística la realice."
+        )
+    else:
+        for trabajo_cliente in mis_trabajos:
+            with st.expander(
+                f"{trabajo_cliente['nombre_proyecto']} · "
+                f"{trabajo_cliente['estado']} · {trabajo_cliente['avance_pct']}%",
+                expanded=(trabajo_cliente == mis_trabajos[0]),
+            ):
+                st.write("**Aplicador:**", trabajo_cliente["aplicador"])
+                st.write("**Estado de campo:**", trabajo_cliente["estado"])
+                st.write("**Referencia de despacho:**", trabajo_cliente["referencia_despacho"])
+                st.metric("Avance", f"{trabajo_cliente['avance_pct']} %")
+                st.progress(trabajo_cliente["avance_pct"] / 100)
+                if trabajo_cliente["estado"] == "pendiente_calidad":
+                    st.info("Aplicación finalizada; pendiente de revisión de calidad RF-08.")
+                mostrar_bitacora_campo(trabajo_cliente)
