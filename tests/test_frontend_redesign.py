@@ -184,3 +184,24 @@ def test_design_css_is_emitted_as_html_not_raw_markdown(monkeypatch):
     assert len(emitted_html) == 1
     assert 'id="cl-theme-dark"' in emitted_html[0]
     assert '--cl-bg: #0A1221;' in emitted_html[0]
+
+
+
+def test_client_facing_brand_copy_has_no_academic_demo_banners():
+    """Keep operational safeguards, but avoid demo and academic banners in the UI."""
+    import re
+    sources = [
+        Path(APP_FILE).read_text(encoding="utf-8"),
+        Path(APP_FILE).with_name("design.py").read_text(encoding="utf-8"),
+    ]
+    prohibited = re.compile(
+        r"acad[eé]mic|universit|"
+        r"\bdemo\b|simulad|de prueba|fictici|"
+        r"no oficiales|certificaci[oó]n|Pintuco",
+        re.IGNORECASE,
+    )
+    for source in sources:
+        assert not prohibited.search(source)
+    # es_demostrativo is a backend response field, never rename the contract.
+    assert '["es_demostrativo"]' in sources[0]
+    assert 'No constituye una reserva' in sources[0]
