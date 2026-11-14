@@ -25,7 +25,7 @@ PAGES = (
 
 ROLE_PAGES = {
     "logistica": ("Operaciones", "Logística y despacho", "Gestiona materiales, reservas y asignación de aplicadores."),
-    "calidad": ("Inspección", "Control de calidad", "Evalúa evidencias y registra dictámenes académicos trazables."),
+    "calidad": ("Inspección", "Control de calidad", "Evalúa evidencias y registra dictámenes con trazabilidad."),
     "aplicador": ("Ejecución", "Trabajo en campo", "Registra la actividad, incidencias y evidencias de tus trabajos."),
     "asesor": ("Revisión", "Asesoría técnica", "Consulta antecedentes y registra decisiones técnicas."),
     "especialista_tecnico": ("Revisión", "Asesoría técnica", "Consulta antecedentes y registra decisiones técnicas."),
@@ -306,7 +306,7 @@ hr { border-color: var(--cl-border); }
 
 
 def brand(compact: bool = False) -> None:
-    label = "GESTIÓN DE PROYECTOS" if not compact else "PLATAFORMA ACADÉMICA"
+    label = "GESTIÓN DE PROYECTOS" if not compact else "PLATAFORMA COLORLINK"
     st.markdown(
         '<div class="cl-brand">'
         f'<div class="cl-mark">{icon_svg("layers", 22)}</div>'
