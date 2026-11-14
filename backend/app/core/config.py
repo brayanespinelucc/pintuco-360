@@ -9,6 +9,8 @@ class Settings(BaseSettings):
     cors_origins: str = "http://localhost:8501"
     supabase_url: str = ""
     supabase_anon_key: str = ""
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.5-flash"
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 

@@ -27,7 +27,7 @@ def call(method, path, *, json=None, files=None):
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     try:
         response = httpx.request(method, f"{API}/api/v1{path}", headers=headers,
-                                 json=json, files=files, timeout=30)
+                                 json=json, files=files, timeout=95)
     except httpx.RequestError:
         st.error("No hay conexión con el backend FastAPI.")
         return None
@@ -84,8 +84,8 @@ if profile["role"] != "cliente":
     st.info("Rol verificado correctamente. Su portal operativo se implementará en las siguientes etapas.")
     st.stop()
 
-tab_dashboard, tab_cliente, tab_proyectos, tab_solicitudes = st.tabs(
-    ["Mi panel", "Mi empresa", "Proyectos", "Solicitudes y fotografías"]
+tab_dashboard, tab_cliente, tab_proyectos, tab_solicitudes, tab_ia = st.tabs(
+    ["Mi panel", "Mi empresa", "Proyectos", "Solicitudes y fotografías", "Análisis con Gemini"]
 )
 
 with tab_cliente:
@@ -192,3 +192,53 @@ with tab_dashboard:
     c2.metric("Proyectos", len(proyectos))
     c3.metric("Solicitudes", len(solicitudes))
     st.info("RF-01 disponible. Las etapas de IA, cálculo, inventario y logística aún no están implementadas.")
+
+
+with tab_ia:
+    st.subheader("Clasificación inteligente de solicitudes — RF-02")
+    st.info(
+        "Gemini clasifica descripciones y fotografías; NO calcula cantidades, "
+        "no aprueba soluciones técnicas ni modifica inventarios. "
+        "Si hay humedad o fisuras, se requiere revisión humana."
+    )
+    solicitudes_ia = call("GET", "/capture/solicitudes") or []
+    if not solicitudes_ia:
+        st.warning("Primero debes registrar una solicitud.")
+    else:
+        opciones = {
+            f"{s['id'][:8]} · {s['estado']} · {s['created_at'][:10]}": s["id"]
+            for s in solicitudes_ia
+        }
+        seleccion_ia = st.selectbox("Selecciona una solicitud", list(opciones), key="ia_solicitud")
+        solicitud_id = opciones[seleccion_ia]
+        st.caption(
+            "Los datos descriptivos y hasta 2 fotografías privadas de esta solicitud "
+            "se enviarán al proveedor Google Gemini para su análisis."
+        )
+        consentimiento_ia = st.checkbox(
+            "Autorizo el envío de la descripción y las fotografías de esta solicitud a Gemini.",
+            key="consentimiento_gemini",
+        )
+        if st.button("Analizar con Gemini", type="primary", disabled=not consentimiento_ia):
+            with st.spinner("Consultando Gemini y registrando el análisis..."):
+                resultado_ia = call(
+                    "POST", f"/ia/solicitudes/{solicitud_id}/analizar",
+                    json={"autorizo_envio_a_gemini": consentimiento_ia},
+                )
+            if resultado_ia:
+                st.success("Análisis estructurado guardado en Supabase.")
+        historial_ia = call("GET", f"/ia/solicitudes/{solicitud_id}/analisis") or []
+        if historial_ia:
+            actual = historial_ia[0]
+            st.write("**Última clasificación**")
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Modelo", actual["modelo"])
+            c2.metric("Fotografías procesadas", actual["numero_imagenes"])
+            c3.metric(
+                "Revisión técnica",
+                "Requerida" if actual["resultado"]["requiere_revision_humana"] else "No indicada",
+            )
+            st.json(actual["resultado"])
+            st.caption(f"Registrado el {actual['created_at'][:19]} UTC. No equivale a diagnóstico técnico.")
+        else:
+            st.caption("Todavía no hay análisis para esta solicitud.")
