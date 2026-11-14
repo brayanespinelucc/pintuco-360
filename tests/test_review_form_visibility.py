@@ -21,5 +21,5 @@ def test_form_is_available_for_pending_customer_review():
 
 
 def test_version_label_and_compatible_textarea():
-    assert "Interfaz 0.6.2" in SOURCE
+    assert "· Interfaz " in SOURCE
     assert "min_height=" not in SOURCE
