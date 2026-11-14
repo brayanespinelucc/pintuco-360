@@ -111,6 +111,35 @@ async def evento(aplicacion_id: uuid.UUID, data: EventoCampo,
     return result
 
 
+class SubsanarCampo(BaseModel):
+    observaciones: str = Field(min_length=15, max_length=1500)
+
+    @model_validator(mode="after")
+    def validar(self):
+        if len(self.observaciones.strip()) < 15:
+            raise ValueError("Describe las correcciones realizadas en al menos 15 caracteres.")
+        return self
+
+
+@router.post("/aplicaciones/{aplicacion_id}/subsanar", status_code=201)
+async def subsanar(
+    aplicacion_id: uuid.UUID, data: SubsanarCampo,
+    session=Depends(current_user),
+):
+    profile, token = session
+    if profile["role"] != "aplicador":
+        raise HTTPException(status_code=403, detail="Solo el aplicador asignado puede subsanar.")
+    result = await supabase_rest("POST", "rpc/subsanar_calidad", token, json={
+        "p_aplicacion_id": str(aplicacion_id),
+        "p_observaciones": data.observaciones.strip(),
+    })
+    if (not isinstance(result, dict)
+            or result.get("aplicacion_id") != str(aplicacion_id)
+            or result.get("estado_aplicacion") != "pendiente_calidad"):
+        raise HTTPException(status_code=502, detail="No se pudo confirmar la subsanación.")
+    return result
+
+
 async def _mis_aplicaciones(profile: dict, token: str):
     if profile["role"] not in ROLES_SEGUIMIENTO:
         raise HTTPException(status_code=403, detail="Acceso no autorizado.")
@@ -137,8 +166,8 @@ async def subir_foto(
     own = _buscar_asignacion(await _mis_aplicaciones(profile, token), aplicacion_id)
     if not own or own["aplicador_id"] != profile["id"]:
         raise HTTPException(status_code=403, detail="El trabajo no está asignado a tu cuenta.")
-    if own["estado"] != "en_ejecucion":
-        raise HTTPException(status_code=409, detail="Solo se admiten fotografías durante la ejecución.")
+    if own["estado"] not in {"en_ejecucion", "en_correccion"}:
+        raise HTTPException(status_code=409, detail="Solo se admiten fotografías durante la ejecución o la subsanación.")
     if not (10 <= len(observaciones.strip()) <= 1500):
         raise HTTPException(status_code=422, detail="Las observaciones deben tener de 10 a 1500 caracteres.")
     if not archivo.filename or len(archivo.filename) > 255:
