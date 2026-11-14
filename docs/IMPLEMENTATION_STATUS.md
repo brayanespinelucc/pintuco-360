@@ -47,3 +47,11 @@
 - No hay revisiones reales aún; falta crear una SEGUNDA cuenta con rol especialista_tecnico para la prueba E2E.
 - Correcciones de parámetros: se registran propuestas, no se aplican automáticamente.
 - Los módulos RF-01 a RF-04 ya superaron pruebas manuales de usuario.
+
+## RF-05.1 — Respuesta del cliente (versión 0.6.1)
+- Migración `0008_rf05_client_response.sql` aplicada en Supabase con tabla RLS y RPC privada.
+- El cliente puede responder a la última solicitud de información y pasar a `en_revision_tecnica`.
+- Nueva API y formulario cliente, historial también visible para el asesor.
+- Pruebas SQL transaccionales revertidas: transición de estado, bloqueo de duplicados, denegación a especialista y a otro cliente.
+- La solicitud real sigue pendiente de respuesta; prueba desde Streamlit pendiente.
+- No se actualizaron proyectos, cálculos ni existencias en la implementación.
