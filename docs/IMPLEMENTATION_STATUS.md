@@ -38,3 +38,12 @@
 - API y pestaña de Streamlit: implementadas; CI y prueba local pendientes de confirmar.
 - La prueba directa de RPC con un usuario autenticado pasó dentro de una transacción revertida.
 - No existen reservas ni descuentos de stock, tampoco integración con inventario real de Pintuco.
+
+## RF-05 — Bandeja de revisión humana
+- SQL `0007_rf05_human_review.sql`: aplicado en Supabase, funciones de permisos y decisiones auditables.
+- Interfaz del asesor y consulta del cliente: implementadas en Streamlit.
+- API de bandeja, detalle y resolución: implementada en FastAPI.
+- Prueba SQL de cliente denegado y asesor temporal aprobado: superada en transacciones revertidas.
+- No hay revisiones reales aún; falta crear una SEGUNDA cuenta con rol especialista_tecnico para la prueba E2E.
+- Correcciones de parámetros: se registran propuestas, no se aplican automáticamente.
+- Los módulos RF-01 a RF-04 ya superaron pruebas manuales de usuario.
