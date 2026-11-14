@@ -66,3 +66,13 @@
 - Datos reales en Supabase permanecen sin movimientos por parte de las pruebas.
 - Falta crear tercera cuenta de prueba logistica y ejecutar escenario E2E del usuario.
 - El inventario y las referencias son exclusivamente demostrativos y no hay transportadora ni WMS.
+
+## RF-07 — Ejecución en campo (v0.8.0)
+- Migración `0010_rf07_field_execution.sql` aplicada a Supabase, tablas con RLS y RPC privadas verificadas.
+- Logística asigna trabajos despachados a rol aplicador; este registra inicio, avance porcentual, incidencia, foto privada y finalización.
+- La solicitud pasa a `en_calidad` únicamente al finalizar la aplicación con 100 %.
+- Cliente consulta sus propias aplicaciones y evidencias; logística tiene vista operativa. No hay acceso directo a tablas.
+- Bucket privado `colorlink-campo` para JPG/PNG de hasta 5 MB, máximo 10 fotos por aplicación.
+- SQL en transacciones revertidas: roles simulados, asignación, progreso, incidencia, cierre y foto con autorización storage; confirmado.
+- **Prueba E2E local pendiente:** crear cuarta cuenta con rol `aplicador`, asignar desde logística, iniciar desde aplicador.
+- RF-08 — inspección y decisión humana de calidad — permanece pendiente.
