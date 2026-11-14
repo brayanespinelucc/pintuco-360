@@ -13,7 +13,7 @@ settings = get_settings()
 app = FastAPI(
     title=settings.app_name,
     description="API académica COLORLINK / Pintuco 360",
-    version="0.6.0",
+    version="0.6.1",
 )
 app.add_middleware(
     CORSMiddleware,
@@ -32,4 +32,4 @@ app.include_router(review_router, prefix="/api/v1")
 
 @app.get("/api/v1/health", tags=["Salud"])
 def health() -> dict[str, str]:
-    return {"status": "ok", "service": "pintuco-360-api", "version": "0.6.0"}
+    return {"status": "ok", "service": "pintuco-360-api", "version": "0.6.1"}
