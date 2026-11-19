@@ -94,12 +94,21 @@ def main() -> None:
 
                 if role == "cliente":
                     first_radio = page.locator(
-                        '[data-testid="stSidebar"] [role="radiogroup"] label'
+                        '[data-testid="stSidebar"] '
+                        '[data-testid="stRadioOption"][data-selected="true"]'
                     ).first
-                    if first_radio.count():
-                        print("QA SIDEBAR RADIO DOM:", first_radio.evaluate(
-                            "(element) => element.outerHTML.slice(0, 2500)"
-                        ))
+                    expect(first_radio).to_be_visible()
+                    selected_background = first_radio.evaluate(
+                        "(el) => getComputedStyle(el).backgroundColor"
+                    )
+                    assert selected_background == "rgb(236, 242, 255)", (
+                        f"Sidebar active item must use the brand palette: "
+                        f"{selected_background}"
+                    )
+                    radio_indicator = first_radio.locator(
+                        ":scope > div > div:first-child"
+                    )
+                    expect(radio_indicator).to_be_hidden()
                     expect(page.get_by_text("Solicitud a seguir")).to_be_visible()
                     assert page.locator(".cl-process-steps").count() > 0
                     page.locator('[data-testid="stSidebar"]').get_by_text(
