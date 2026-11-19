@@ -1,0 +1,64 @@
+name: Verify deployable COLORLINK container
+
+on:
+  push:
+    branches: [main, "feat/**"]
+    paths:
+      - "Dockerfile.render"
+      - "render.yaml"
+      - ".dockerignore"
+      - "deploy/**"
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/deploy-smoke.yml"
+  pull_request:
+    paths:
+      - "Dockerfile.render"
+      - "render.yaml"
+      - ".dockerignore"
+      - "deploy/**"
+      - "backend/**"
+      - "frontend/**"
+      - ".github/workflows/deploy-smoke.yml"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Render Docker image
+        run: docker build --file Dockerfile.render --tag colorlink-deploy:smoke .
+      - name: Start with the Render free memory limit
+        run: |
+          docker run -d --rm --memory=512m --cpus=1 \
+            --name colorlink-smoke \
+            -p 127.0.0.1:10000:10000 \
+            -e PORT=10000 \
+            colorlink-deploy:smoke
+      - name: Verify public UI and private FastAPI
+        shell: bash
+        run: |
+          set -euo pipefail
+          ready=0
+          for i in $(seq 1 90); do
+            if curl -fsS --connect-timeout 2 --max-time 5 \
+              http://127.0.0.1:10000/_stcore/health >/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 2
+          done
+          if [ "$ready" -ne 1 ]; then
+            echo "Streamlit did not become healthy"
+            exit 1
+          fi
+          curl -fsS --max-time 10 http://127.0.0.1:10000/ >/dev/null
+          docker exec colorlink-smoke python -c \
+            "import json, urllib.request; url='http://127.0.0.1:8000/api/v1/health'; data=json.load(urllib.request.urlopen(url, timeout=10)); assert data['status']=='ok', data"
+      - name: Container logs
+        if: always()
+        run: docker logs colorlink-smoke 2>&1 || true
+      - name: Stop container
+        if: always()
+        run: docker rm -f colorlink-smoke 2>/dev/null || true
