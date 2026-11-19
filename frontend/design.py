@@ -283,6 +283,30 @@ hr { border-color: var(--cl-border); }
  filter: brightness(.91);
 }
 
+
+.cl-event-timeline {
+  list-style:none; margin:.8rem 0 1.35rem; padding:0 0 0 .7rem;
+  border-left:2px solid var(--cl-border);
+}
+.cl-event-item { position:relative; padding:0 0 1rem 1.35rem; }
+.cl-event-item:last-child { padding-bottom:0; }
+.cl-event-dot {
+  position:absolute; left:-.43rem; top:.32rem; height:.72rem; width:.72rem;
+  background:var(--cl-turquoise); border-radius:50%;
+  border:3px solid var(--cl-panel); box-shadow:0 0 0 2px var(--cl-border);
+}
+.cl-event-body { padding:.1rem 0 .2rem; }
+.cl-event-head {
+  display:flex; align-items:baseline; justify-content:space-between;
+  gap:.65rem; flex-wrap:wrap;
+}
+.cl-event-head strong { color:var(--cl-heading); font-size:.88rem; font-weight:800; }
+.cl-event-head time { color:var(--cl-muted); font-size:.72rem; }
+.cl-event-body p {
+  color:var(--cl-text); font-size:.8rem; line-height:1.55;
+  margin:.4rem 0 0; white-space:pre-wrap; overflow-wrap:anywhere;
+}
+
 /* Process-first components: passive HTML, native Streamlit for all actions. */
 .cl-process-summary {
   border:1px solid var(--cl-border); background:var(--cl-panel);
