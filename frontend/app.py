@@ -12,7 +12,7 @@ from design import (
 from process_ui import (
     render_request_panel, render_stage_explorer,
     render_state_distribution, render_stepper, render_field_progress,
-    request_state,
+    render_event_timeline, request_state,
 )
 
 load_dotenv()
@@ -379,7 +379,9 @@ if profile["role"] == "logistica":
                 st.write("**Lotes asociados**")
                 st.dataframe(orden["lotes"], use_container_width=True, hide_index=True)
             if orden.get("eventos"):
-                with st.expander("Historial de eventos"):
+                st.write("**Historial de operaciones**")
+                render_event_timeline(orden["eventos"])
+                with st.expander("Ver todos los datos del historial"):
                     st.dataframe(orden["eventos"], use_container_width=True, hide_index=True)
 
             acciones_posibles = {
@@ -478,7 +480,7 @@ if profile["role"] == "logistica":
                     f"{trabajo['estado']} · {trabajo['avance_pct']}%",
                     expanded=False,
                 ):
-                    st.progress(trabajo["avance_pct"] / 100)
+                    render_field_progress(trabajo["avance_pct"])
                     mostrar_bitacora_campo(trabajo)
     st.stop()
 
@@ -535,6 +537,9 @@ if profile["role"] == "calidad":
                 })
                 if expediente.get("inspecciones"):
                     st.write("**Dictámenes anteriores (inmutables)**")
+                    render_event_timeline(
+                        expediente["inspecciones"], event_key="decision",
+                    )
                     st.dataframe(
                         expediente["inspecciones"], hide_index=True,
                         use_container_width=True,
@@ -628,6 +633,7 @@ if profile["role"] == "calidad":
                     st.write("**Estado de aplicación:**", e["estado_aplicacion"])
                     st.write("**Avance original:**", f"{e['avance_pct']} %")
                     if e.get("inspecciones"):
+                        render_event_timeline(e["inspecciones"], event_key="decision")
                         st.dataframe(
                             e["inspecciones"], hide_index=True, use_container_width=True
                         )
@@ -877,6 +883,9 @@ if profile["role"] in {"asesor", "especialista_tecnico", "administrador"}:
                                    + respuesta_cliente["revision_id"][:8])
             if detalle_asesor["revisiones"]:
                 with st.expander("Historial de decisiones humanas"):
+                    render_event_timeline(
+                        detalle_asesor["revisiones"], event_key="decision",
+                    )
                     st.dataframe(
                         detalle_asesor["revisiones"],
                         use_container_width=True, hide_index=True,
@@ -1404,6 +1413,7 @@ if client_page == "Revisión técnica":
 
             if revisiones:
                 st.write("**Historial de decisiones del especialista**")
+                render_event_timeline(revisiones, event_key="decision")
                 for revision in revisiones:
                     with st.expander(
                         f"{revision['created_at'][:19]} · "
@@ -1461,6 +1471,7 @@ if client_page == "Seguimiento logístico":
                     )
                 if mi_orden.get("eventos"):
                     st.write("**Eventos registrados**")
+                    render_event_timeline(mi_orden["eventos"])
                     st.dataframe(
                         mi_orden["eventos"], use_container_width=True, hide_index=True
                     )
@@ -1525,6 +1536,7 @@ if client_page == "Control de calidad":
                 elif e["estado_aplicacion"] == "calidad_rechazada":
                     st.error("Dictamen de calidad rechazado.")
                 if e.get("inspecciones"):
+                    render_event_timeline(e["inspecciones"], event_key="decision")
                     for i in e["inspecciones"]:
                         st.write(
                             f"**Dictamen {i['numero_inspeccion']}: {i['decision']}** "
