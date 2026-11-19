@@ -136,27 +136,29 @@ def test_evaluator(browser):
     login(page, "evaluador@qa.local")
     selector = page.get_by_role("combobox", name="Probar funcionalidades como")
     expect(selector).to_be_visible(timeout=20000)
-    selector.click()
-    print("EVALUATOR COMBOBOX POPUP DOM:", page.locator("body").evaluate(
-        "(el) => el.outerHTML.slice(-9000)"
-    ))
-    print("EVALUATOR COMBOBOX OPTIONS:", page.locator(
-        '[role="listbox"],[data-baseweb="popover"],[data-testid="stSelectbox"]'
-    ).all_text_contents())
-    # Streamlit's Selectbox popup exposes option text, but not always role=option.
-    page.get_by_text("Logística", exact=True).last.click()
-    print("EVALUATOR POST-CLICK COMBOBOX:", selector.get_attribute("value"))
-    print("EVALUATOR SWITCH BUTTON COUNT:", page.get_by_role(
+    # React-ARIA renders a separate "Open" button beside the selectbox text
+    # input. Clicking the input alone only focuses it; it does not open options.
+    page.locator(
+        '[data-testid="stSidebar"] [data-testid="stSelectbox"] '
+        'button[aria-label="Open"]'
+    ).click()
+    expect(selector).to_have_attribute("aria-expanded", "true")
+    page.get_by_role("option", name="Logística").click()
+    expect(page.get_by_role(
         "button", name="Cambiar al rol seleccionado"
-    ).count())
+    )).to_be_visible(timeout=15000)
     page.get_by_role("button", name="Cambiar al rol seleccionado").click()
     expect(page.locator(".cl-workspace-bar")).to_contain_text(
         "Logística", timeout=25000
     )
     assert matching("auth/evaluator/role")[-1]["role"] == "logistica"
     selector = page.get_by_role("combobox", name="Probar funcionalidades como")
-    selector.click()
-    page.get_by_text("Control de calidad", exact=True).last.click()
+    page.locator(
+        '[data-testid="stSidebar"] [data-testid="stSelectbox"] '
+        'button[aria-label="Open"]'
+    ).click()
+    expect(selector).to_have_attribute("aria-expanded", "true")
+    page.get_by_role("option", name="Control de calidad").click()
     page.get_by_role("button", name="Cambiar al rol seleccionado").click()
     expect(page.locator(".cl-workspace-bar")).to_contain_text(
         "Control de calidad", timeout=25000
