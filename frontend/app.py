@@ -308,8 +308,7 @@ else:
     )
     page_hero(section, title, description, chip=ROLE_LABELS.get(profile["role"], "COLORLINK"))
 if profile["role"] == "logistica":
-    st.subheader("Gestión logística")
-    st.caption("Gestiona reservas, órdenes y trazabilidad de materiales.")
+    step_intro("OPS", "Centro de operaciones", "Gestiona reservas, órdenes y trazabilidad de materiales.")
     if st.session_state.pop("rf06_exito", False):
         st.success("Operación registrada en Supabase y sujeta a auditoría.")
     st.caption(
@@ -502,7 +501,7 @@ if profile["role"] == "logistica":
     st.stop()
 
 if profile["role"] == "calidad":
-    st.subheader("Inspecciones y control de calidad")
+    step_intro("QA", "Revisión e inspección", "Evalúa expedientes y registra dictámenes sustentados en evidencia.")
     if st.session_state.pop("rf08_dictamen_exitoso", False):
         st.success("Dictamen humano de calidad registrado con trazabilidad.")
     expedientes_calidad = call("GET", "/calidad/expedientes") or []
@@ -663,7 +662,7 @@ if profile["role"] == "calidad":
     st.stop()
 
 if profile["role"] == "aplicador":
-    st.subheader("Ejecución y seguimiento en campo")
+    step_intro("CAM", "Mi trabajo en campo", "Registra avances, incidencias y evidencias sobre actividades asignadas.")
     if st.session_state.pop("rf07_evento_exitoso", False):
         st.success("Actividad registrada en Supabase.")
     trabajos = call("GET", "/campo/aplicaciones") or []
@@ -847,7 +846,7 @@ if profile["role"] == "aplicador":
     st.stop()
 
 if profile["role"] in {"asesor", "especialista_tecnico", "administrador"}:
-    st.subheader("Bandeja de revisión técnica")
+    step_intro("TEC", "Revisión de expedientes", "Analiza antecedentes y registra una decisión técnica trazable.")
     st.caption(
         "Revisa antecedentes y deja una decisión humana auditable. "
         "Ninguna aprobación reserva inventario ni genera despachos."
@@ -1192,7 +1191,7 @@ if client_page == "Mi panel":
 
 
 if client_page == "Análisis con Gemini":
-    st.subheader("Clasificación inteligente de solicitudes")
+    step_intro("04", "Análisis inteligente", "Clasifica la descripción y las evidencias con consentimiento explícito.")
     st.info(
         "Gemini clasifica descripciones y fotografías; NO calcula cantidades, "
         "no aprueba soluciones técnicas ni modifica inventarios. "
@@ -1242,7 +1241,7 @@ if client_page == "Análisis con Gemini":
 
 
 if client_page == "Cálculo técnico":
-    st.subheader("Cálculo técnico de materiales")
+    step_intro("05", "Estima los materiales", "Consulta el catálogo y calcula cantidades con los parámetros reales.")
     st.caption(
         "El backend calcula los litros usando el área del proyecto y rendimientos "
         "del catálogo. La IA no realiza operaciones matemáticas."
@@ -1308,7 +1307,7 @@ if client_page == "Cálculo técnico":
 
 
 if client_page == "Inventario":
-    st.subheader("Disponibilidad de materiales por bodegas y lotes")
+    step_intro("06", "Consulta existencias", "Evalúa disponibilidad y propuestas de lotes sin reservar inventario.")
     st.info(
         "Consulta existencias y propone lotes por fecha de vencimiento. "
         "Esta consulta no reserva ni descuenta existencias."
@@ -1371,7 +1370,7 @@ if client_page == "Inventario":
 
 
 if client_page == "Revisión técnica":
-    st.subheader("Revisión técnica y respuesta al especialista")
+    step_intro("07", "Revisión técnica", "Consulta decisiones y responde cuando el especialista solicite información.")
     st.caption(
         "El cliente responde aquí a las solicitudes de información. "
         "Solo el especialista puede aprobar o rechazar."
@@ -1481,7 +1480,7 @@ if client_page == "Revisión técnica":
 
 
 if client_page == "Seguimiento logístico":
-    st.subheader("Seguimiento logístico de mis solicitudes")
+    step_intro("08", "Seguimiento del despacho", "Consulta reservas, preparación y trazabilidad de los materiales.")
     st.caption(
         "Solo se muestran las órdenes de tus solicitudes. "
         "La reserva y el despacho requieren un operador autorizado."
@@ -1518,7 +1517,7 @@ if client_page == "Seguimiento logístico":
 
 
 if client_page == "Aplicación en campo":
-    st.subheader("Seguimiento de la aplicación de mis proyectos")
+    step_intro("09", "Ejecución de proyecto", "Sigue avances, incidencias y fotografías del equipo de aplicación.")
     st.caption(
         "Consulta el avance, las incidencias y las fotografías del aplicador asignado. "
         "No puedes modificar los reportes del personal de campo."
@@ -1548,6 +1547,7 @@ if client_page == "Aplicación en campo":
 
 if client_page == "Control de calidad":
     section_intro("CONTROL DE CALIDAD", "Historial de calidad", "Consulta los dictámenes y el estado de cada expediente.")
+    step_intro("10", "Evaluación y cierre", "Consulta decisiones, observaciones y el resultado de calidad.")
     st.caption(
         "Consulta las decisiones del inspector y las correcciones solicitadas. "
         "Solo el área de calidad puede aprobar o rechazar."
