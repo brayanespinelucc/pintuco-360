@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+from time import monotonic, sleep
 from urllib.request import urlopen
 
 from playwright.sync_api import expect, sync_playwright
@@ -22,6 +23,22 @@ def events():
 
 def matching(path):
     return [e for e in events() if e["path"] == path]
+
+
+def await_event(path, *, minimum, timeout_seconds=20):
+    # Form actions run on Streamlit's separate Python server, not in the
+    # browser's HTTP network context. Poll the *local mock fixture* until the
+    # server-side call completes instead of racing with the WebSocket rerun.
+    deadline = monotonic() + timeout_seconds
+    while monotonic() < deadline:
+        records = matching(path)
+        if len(records) >= minimum:
+            return records
+        sleep(.15)
+    raise AssertionError(
+        f"No isolated API event for {path}: expected {minimum}, "
+        f"observed {len(matching(path))}"
+    )
 
 
 def sidebar(page, label):
@@ -104,10 +121,10 @@ def test_client_creation(browser):
     )
     before = len(matching("capture/solicitudes"))
     page.get_by_role("button", name="Radicar solicitud").click()
-    expect(page.get_by_text(
+    await_event("capture/solicitudes", minimum=before + 1)
+    expect(page.locator(".cl-record-card").filter(has_text=(
         "Solicitud de pintura exterior para probar el recorrido sin datos reales."
-    ).first).to_be_visible(timeout=20000)
-    assert len(matching("capture/solicitudes")) == before + 1
+    ))).to_be_visible(timeout=20000)
     assert matching("capture/solicitudes")[-1]["fields"] == [
         "descripcion_libre", "proyecto_id",
     ]
