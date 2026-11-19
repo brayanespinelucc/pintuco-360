@@ -713,6 +713,32 @@ div.stFormSubmitButton > button[kind="primary"]:hover {
  .cl-step-intro{padding:.9rem;}
 }
 
+
+/* Visual QA regression: real browser showed default Streamlit heading ink in
+   the dark hero despite the class-specific heading declaration. */
+[data-testid="stApp"] .cl-hero h1.cl-hero-title {
+  color:#FFFFFF!important;
+  -webkit-text-fill-color:#FFFFFF!important;
+}
+/* Streamlit developer/Deploy chrome is not part of the customer product.
+   Keep the sidebar expand/collapse control in the separate stSidebar header. */
+[data-testid="stToolbar"] {visibility:hidden!important;pointer-events:none!important;}
+[data-testid="stDecoration"] {display:none!important;}
+@media(max-width:750px){
+  [data-testid="stMainBlockContainer"]:has(.cl-auth-showcase) {
+    padding-top:.4rem!important;
+  }
+  .cl-auth-showcase {
+    min-height:245px;
+    padding:1.1rem 1.25rem;
+  }
+  .cl-auth-headline {font-size:1.9rem;line-height:1.1;margin:.75rem 0;}
+  .cl-auth-sub {font-size:.84rem;line-height:1.5;margin:0;}
+  .cl-auth-badges {margin-top:.75rem;gap:.35rem;}
+  .cl-auth-badges span {padding:.38rem .55rem;font-size:.62rem;}
+  .cl-auth-bottom {display:none;}
+}
+
 /* Reduced motion takes priority over decorative transitions. */
 @media(max-width:1000px){
  .cl-auth-showcase{min-height:420px;padding:2rem;}
