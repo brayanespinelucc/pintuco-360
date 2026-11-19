@@ -722,7 +722,10 @@ div.stFormSubmitButton > button[kind="primary"]:hover {
 }
 /* Streamlit developer/Deploy chrome is not part of the customer product.
    Keep the sidebar expand/collapse control in the separate stSidebar header. */
-[data-testid="stToolbar"] {visibility:hidden!important;pointer-events:none!important;}
+/* Preserve the toolbar shell: Streamlit places the mobile sidebar opener there. */
+[data-testid="stDeployButton"], #MainMenu, [data-testid="stMainMenu"] {
+  display:none!important;
+}
 [data-testid="stDecoration"] {display:none!important;}
 @media(max-width:750px){
   [data-testid="stMainBlockContainer"]:has(.cl-auth-showcase) {
