@@ -31,6 +31,12 @@ def sign_in(page, role: str) -> None:
     page.get_by_role("button", name="Ingresar a mi espacio").click()
     expect(page.locator(".cl-workspace-bar")).to_be_visible(timeout=40000)
     expect(page.locator(".cl-hero")).to_be_visible()
+    hero_color = page.locator("h1.cl-hero-title").evaluate(
+        "(element) => getComputedStyle(element).color"
+    )
+    assert hero_color == "rgb(255, 255, 255)", (
+        f"{role}: hero title must remain readable on the navy header: {hero_color}"
+    )
 
 
 def check_no_page_overflow(page, label: str) -> None:
@@ -67,6 +73,19 @@ def main() -> None:
             expect(mobile.locator(".cl-auth-showcase")).to_be_visible(timeout=40000)
             capture(mobile, "03-login-mobile")
             check_no_page_overflow(mobile, "Login móvil")
+            sign_in_button = mobile.get_by_role(
+                "button", name="Ingresar a mi espacio"
+            ).bounding_box()
+            assert sign_in_button is not None
+            assert sign_in_button["y"] < 844, (
+                "El formulario de ingreso debe aparecer en la pantalla inicial móvil"
+            )
+            tablet = browser.new_page(viewport={"width": 768, "height": 1024})
+            tablet.goto(URL, wait_until="domcontentloaded")
+            expect(tablet.locator(".cl-auth-form-title")).to_be_visible(timeout=40000)
+            capture(tablet, "03b-login-tablet")
+            check_no_page_overflow(tablet, "Login tablet")
+            tablet.close()
 
             for role in ROLES:
                 page = browser.new_page(viewport={"width": 1440, "height": 900})
@@ -100,7 +119,15 @@ def main() -> None:
             sign_in(mobile_user, "cliente")
             capture(mobile_user, "07-client-mobile")
             check_no_page_overflow(mobile_user, "Panel cliente móvil")
-            print("BROWSER QA PASSED: login, signup, 5 roles, client entities, mobile")
+            sidebar_overlay = mobile_user.evaluate("""() => {
+                const atCenter = document.elementFromPoint(195, 210);
+                return !!atCenter?.closest('[data-testid="stSidebar"]');
+            }""")
+            assert not sidebar_overlay, (
+                "El menú lateral debe estar plegado inicialmente en móviles"
+            )
+            print("BROWSER QA PASSED: login, signup, 5 roles, responsive "
+                  "desktop/tablet/mobile, contrast and collapsed sidebar")
         finally:
             browser.close()
 
