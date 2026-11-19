@@ -111,3 +111,10 @@ El repositorio incluye una configuración de **Render Blueprint**, que ejecuta S
 La guía completa, limitaciones del plan gratis y verificación de accesos están en [docs/PUBLICAR_RENDER.md](docs/PUBLICAR_RENDER.md).
 
 **Nota:** estos archivos preparan la publicación, pero la URL pública no existe hasta autorizar el despliegue en la cuenta Render del propietario.
+
+
+## Registro autónomo y pruebas de todos los roles
+
+El portal incluye **Crear cuenta** para nuevos usuarios, integrado con Supabase Auth. Los usuarios recién registrados comienzan como **Cliente**. Las cuentas que el propietario autorice individualmente como evaluadoras podrán alternar entre **Cliente, Especialista técnico, Logística, Aplicador y Control de calidad** sin volver a iniciar sesión ni cambiar contraseñas. Los permisos se aplican realmente en Supabase y los cambios se auditan.
+
+**No está abierto al público el cambio de roles.** El propietario habilita solamente el correo confirmado del profesor *después* de que este se registre por su cuenta. Consulta [la guía de registro y habilitación](docs/REGISTRO_EVALUADOR.md) antes de autorizar a alguien. La guía incluye el SQL de autorización y revocación y el orden completo del proceso.
