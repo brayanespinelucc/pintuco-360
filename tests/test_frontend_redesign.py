@@ -77,6 +77,12 @@ def _open_app():
     return app
 
 
+def _click_page(app, label):
+    button = next(item for item in app.button if item.label == label)
+    button.click().run()
+    return app
+
+
 def test_login_page_renders_without_real_credentials(api):
     app = AppTest.from_file(APP_FILE, default_timeout=20).run()
     assert not app.exception
@@ -87,13 +93,13 @@ def test_client_has_eleven_real_pages_and_lazy_loads(api):
     received, roles = api
     app = _open_app()
     assert roles["role"] == "cliente"
-    assert list(app.radio[0].options) == CLIENT_PAGES
+    assert all(any(b.label == page for b in app.button) for page in CLIENT_PAGES)
     assert ("GET", "/capture/clientes") in received
     assert ("GET", "/capture/proyectos") in received
     assert ("GET", "/capture/solicitudes") in received
     assert ("GET", "/calidad/expedientes") not in received
     received.clear()
-    app.radio[0].set_value("Control de calidad").run()
+    _click_page(app, "Control de calidad")
     assert not app.exception
     assert ("GET", "/calidad/expedientes") in received
     assert ("GET", "/capture/clientes") not in received
@@ -104,7 +110,7 @@ def test_client_has_eleven_real_pages_and_lazy_loads(api):
 @pytest.mark.parametrize("page", CLIENT_PAGES)
 def test_every_client_module_renders_without_data(api, page):
     app = _open_app()
-    app.radio[0].set_value(page).run()
+    _click_page(app, page)
     assert not app.exception, [str(e.message) for e in app.exception]
 
 
@@ -133,21 +139,22 @@ def test_logistics_navigation_lazily_loads_each_operational_stage(api):
     received, roles = api
     roles["role"] = "logistica"
     app = _open_app()
-    assert list(app.radio[0].options) == [
-        "Reservas", "Órdenes y despachos", "Aplicadores y campo",
-    ]
+    assert all(
+        any(b.label == page for b in app.button)
+        for page in ("Reservas", "Órdenes y despachos", "Aplicadores y campo")
+    )
     assert ("GET", "/logistica/bandeja") in received
     assert ("GET", "/logistica/ordenes") not in received
     assert ("GET", "/campo/aplicaciones") not in received
 
     received.clear()
-    app.radio[0].set_value("Órdenes y despachos").run()
+    _click_page(app, "Órdenes y despachos")
     assert not app.exception
     assert ("GET", "/logistica/ordenes") in received
     assert ("GET", "/logistica/bandeja") not in received
 
     received.clear()
-    app.radio[0].set_value("Aplicadores y campo").run()
+    _click_page(app, "Aplicadores y campo")
     assert not app.exception
     assert ("GET", "/campo/aplicaciones") in received
     assert ("GET", "/campo/elegibles") in received
@@ -159,14 +166,15 @@ def test_inspector_queue_and_history_use_the_same_authorized_read_api(api):
     received, roles = api
     roles["role"] = "calidad"
     app = _open_app()
-    assert list(app.radio[0].options) == [
-        "Inspecciones pendientes", "Historial de dictámenes",
-    ]
+    assert all(
+        any(b.label == page for b in app.button)
+        for page in ("Inspecciones pendientes", "Historial de dictámenes")
+    )
     assert ("GET", "/calidad/bandeja") in received
     assert ("GET", "/calidad/expedientes") in received
 
     received.clear()
-    app.radio[0].set_value("Historial de dictámenes").run()
+    _click_page(app, "Historial de dictámenes")
     assert not app.exception
     assert ("GET", "/calidad/expedientes") in received
     assert ("GET", "/calidad/bandeja") not in received
@@ -188,12 +196,12 @@ def test_design_css_is_emitted_as_html_not_raw_markdown(monkeypatch):
     assert '<style>' in emitted_html[0] and '</style>' in emitted_html[0]
     assert 'id="cl-theme-light"' in emitted_html[0]
     assert '[data-testid="stApp"]' in emitted_html[0]
-    assert '--cl-bg: #F5F7FB;' in emitted_html[0]
+    assert '--cl-bg:#F4F5FA;' in emitted_html[0]
     emitted_html.clear()
     design.apply_design_system(True)
     assert len(emitted_html) == 1
     assert 'id="cl-theme-dark"' in emitted_html[0]
-    assert '--cl-bg: #0A1221;' in emitted_html[0]
+    assert '--cl-bg:#0B1020;' in emitted_html[0]
 
 
 
@@ -242,7 +250,7 @@ def test_evaluator_can_change_role_and_return_without_impersonating_user(api):
     assert not app.exception
     assert role["role"] == "calidad"
     assert ("POST", "/auth/evaluator/role") in seen
-    assert any("Inspecciones pendientes" == y for y in app.radio[0].options)
+    assert any(b.label == "Inspecciones pendientes" for b in app.button)
 
 
 def test_normal_user_does_not_have_any_role_changer(api):
@@ -272,7 +280,7 @@ def test_dashboard_tracks_real_request_status_and_routes_next_action(api):
     seen.clear()
     action.click().run()
     assert not app.exception
-    assert app.radio[0].value == "Revisión técnica"
+    assert app.session_state["cl_page"] == "Revisión técnica"
     assert not any(method == "POST" for method, _ in seen)
 
 
@@ -290,7 +298,7 @@ def test_request_details_keep_original_upload_action_and_status_navigation(api):
     }]
     app = _open_app()
     seen.clear()
-    app.radio[0].set_value("Solicitudes").run()
+    _click_page(app, "Solicitudes")
     assert not app.exception
     assert any(x.label == "Solicitud para adjuntar fotos" for x in app.selectbox)
     assert any(x.label == "Adjuntar fotografías" for x in app.button)
