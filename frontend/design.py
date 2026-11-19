@@ -418,12 +418,12 @@ hr { border-color: var(--cl-border); }
   --cl-panel-soft:#F6F8FB;
   --cl-text:#28354B;
   --cl-heading:#0A1730;
-  --cl-muted:#697990;
+  --cl-muted:#596B82;
   --cl-border:#DFE5EE;
   --cl-primary:#2861E7;
   --cl-primary-hover:#174ECC;
   --cl-primary-weak:#ECF2FF;
-  --cl-turquoise:#008C84;
+  --cl-turquoise:#00786F;
   --cl-success:#137E5A;
   --cl-shadow:0 8px 36px rgba(18,36,67,.055), 0 1px 3px rgba(18,36,67,.025);
   background:
