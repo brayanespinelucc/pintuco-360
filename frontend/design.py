@@ -282,6 +282,100 @@ hr { border-color: var(--cl-border); }
 [data-testid="stApp"]:has(#cl-theme-dark) [data-testid="stDataFrame"] {
  filter: brightness(.91);
 }
+
+/* Process-first components: passive HTML, native Streamlit for all actions. */
+.cl-process-summary {
+  border:1px solid var(--cl-border); background:var(--cl-panel);
+  box-shadow:var(--cl-shadow); border-radius:20px; padding:1.35rem 1.5rem;
+  margin:.6rem 0 1rem; position:relative; overflow:hidden;
+}
+.cl-process-summary::before {
+  content:""; position:absolute; left:0; top:0; bottom:0; width:4px;
+  background:linear-gradient(180deg,var(--cl-primary),var(--cl-turquoise));
+}
+.cl-process-summary-top {
+  display:flex; align-items:flex-start; justify-content:space-between;
+  gap:1rem; flex-wrap:wrap;
+}
+.cl-process-eyebrow {
+  color:var(--cl-turquoise); font-size:.69rem; font-weight:800;
+  text-transform:uppercase; letter-spacing:.13em; margin:0 0 .35rem;
+}
+.cl-process-summary-title {
+  color:var(--cl-heading); font:800 1.25rem/1.35 "Manrope",sans-serif;
+  margin:0 0 .25rem;
+}
+.cl-process-summary-meta {
+  font-size:.76rem; color:var(--cl-muted); margin:0;
+  overflow-wrap:anywhere;
+}
+.cl-process-hint {
+  font-size:.875rem; color:var(--cl-text); line-height:1.6; margin:.95rem 0 0;
+}
+.cl-status-pill {
+  display:inline-flex; align-items:center; flex-shrink:0;
+  font-size:.74rem; font-weight:800; border-radius:99px;
+  padding:.4rem .75rem; border:1px solid var(--cl-border);
+  background:var(--cl-primary-weak); color:var(--cl-primary);
+}
+.cl-status-pill::before {
+  content:""; width:.45rem; height:.45rem; background:currentColor;
+  border-radius:100%; margin-right:.5rem;
+}
+.cl-status-done { color:var(--cl-success); background:var(--cl-panel-soft); }
+.cl-status-blocked { color:#B55B2C; background:var(--cl-panel-soft); }
+.cl-process-scroll { max-width:100%; overflow-x:auto; overflow-y:hidden; margin:0 0 1.45rem;
+  padding:.4rem .15rem .7rem; scrollbar-width:thin; }
+.cl-process-scroll:focus-visible { outline:3px solid var(--cl-turquoise); outline-offset:3px; }
+.cl-process-steps {
+  list-style:none; display:flex; gap:.48rem;
+  min-width:760px; padding:0; margin:0;
+}
+.cl-step {
+  position:relative; flex:1 1 0; min-width:96px;
+  display:flex; align-items:flex-start; gap:.55rem;
+  background:var(--cl-panel); border:1px solid var(--cl-border);
+  border-radius:12px; padding:.74rem .7rem; color:var(--cl-muted);
+  transition:background .16s ease, border-color .16s ease;
+}
+.cl-step:not(:last-child)::after {
+  content:""; position:absolute; width:.48rem; height:2px;
+  top:50%; left:100%; background:var(--cl-border);
+}
+.cl-step-icon {
+  width:29px; height:29px; flex-shrink:0; border-radius:9px;
+  display:grid; place-items:center; background:var(--cl-panel-soft);
+  color:var(--cl-muted);
+}
+.cl-step-content { display:flex; min-width:0; flex-direction:column; gap:.22rem; }
+.cl-step-name { font-size:.77rem; font-weight:800; line-height:1.3; color:var(--cl-text); }
+.cl-step-owner { font-size:.66rem; line-height:1.25; color:var(--cl-muted); }
+.cl-step-state { font-size:.65rem; line-height:1.25; color:var(--cl-muted); }
+.cl-step-anterior { border-color:color-mix(in srgb,var(--cl-success) 35%,var(--cl-border)); }
+.cl-step-anterior .cl-step-icon { background:var(--cl-panel-soft); color:var(--cl-success); }
+.cl-step-actual {
+  background:var(--cl-primary-weak); border-color:var(--cl-primary);
+  box-shadow:0 0 0 1px color-mix(in srgb,var(--cl-primary) 18%,transparent);
+}
+.cl-step-actual .cl-step-icon { background:var(--cl-primary); color:var(--cl-panel); }
+.cl-step-actual .cl-step-name, .cl-step-actual .cl-step-state { color:var(--cl-primary); }
+.cl-step-pendiente { opacity:.8; }
+.cl-state-list { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.55rem;
+  margin:.6rem 0 1.25rem; }
+.cl-state-item { background:var(--cl-panel); border:1px solid var(--cl-border);
+  border-radius:12px; padding:.7rem .85rem; display:flex; gap:.8rem; align-items:center; }
+.cl-state-count { font:800 1.2rem/1 "Manrope",sans-serif; color:var(--cl-primary); }
+.cl-state-name { color:var(--cl-text); font-size:.76rem; font-weight:650; }
+@media (max-width:900px) { .cl-state-list { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:600px) {
+ .cl-process-summary { padding:1.05rem 1.1rem; }
+ .cl-process-summary-title { font-size:1.1rem; }
+ .cl-process-steps { min-width:700px; }
+ .cl-step { padding:.6rem; gap:.35rem; }
+ .cl-step-icon { width:24px; height:24px; }
+ .cl-state-list { grid-template-columns:1fr; }
+}
+
 @media (max-width:800px) {
  [data-testid="stMainBlockContainer"] { padding-top: .65rem; padding-left: 1rem; padding-right: 1rem; }
  .cl-hero { border-radius: 17px; min-height: 0; padding: 1.35rem 1.2rem; }
