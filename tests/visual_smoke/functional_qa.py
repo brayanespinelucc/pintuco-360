@@ -136,11 +136,13 @@ def test_evaluator(browser):
     login(page, "evaluador@qa.local")
     selector = page.get_by_role("combobox", name="Probar funcionalidades como")
     expect(selector).to_be_visible(timeout=20000)
-    # React-ARIA Combobox supports typing to filter options. This exercises
-    # keyboard selection and avoids depending on transient popover structure.
+    # The React-ARIA listbox arrives asynchronously after filtering.
+    # Await the actual option rather than pressing Enter before it exists.
     selector.fill("Logística")
     selector.press("ArrowDown")
-    selector.press("Enter")
+    menu = page.get_by_role("listbox")
+    expect(menu).to_be_visible(timeout=15000)
+    menu.get_by_text("Logística", exact=True).click()
     expect(page.get_by_role(
         "button", name="Cambiar al rol seleccionado"
     )).to_be_visible(timeout=15000)
@@ -152,7 +154,9 @@ def test_evaluator(browser):
     selector = page.get_by_role("combobox", name="Probar funcionalidades como")
     selector.fill("Control de calidad")
     selector.press("ArrowDown")
-    selector.press("Enter")
+    menu = page.get_by_role("listbox")
+    expect(menu).to_be_visible(timeout=15000)
+    menu.get_by_text("Control de calidad", exact=True).click()
     expect(page.get_by_role(
         "button", name="Cambiar al rol seleccionado"
     )).to_be_visible(timeout=15000)
