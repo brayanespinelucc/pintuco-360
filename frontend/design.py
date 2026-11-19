@@ -622,6 +622,42 @@ div.stFormSubmitButton > button[kind="primary"]:hover {
 [data-testid="stMainBlockContainer"]:has(.cl-auth-showcase) [data-testid="stForm"]{box-shadow:none;border:none;padding:.7rem 0;background:transparent;}
 
 
+
+/* Browser-inspected Streamlit radio markup: present navigation as active pills,
+   not form-selection circles. The input remains keyboard-accessible. */
+[data-testid="stSidebar"] [data-testid="stRadioOption"]{
+  position:relative;
+  display:block;
+  width:100%;
+  padding:.68rem .88rem!important;
+  border-radius:12px;
+  background:transparent;
+  transition:background .16s ease,color .16s ease;
+}
+[data-testid="stSidebar"] [data-testid="stRadioOption"]:hover{
+  background:var(--cl-panel-soft);
+}
+[data-testid="stSidebar"] [data-testid="stRadioOption"][data-selected="true"]{
+  background:var(--cl-primary-weak)!important;
+}
+[data-testid="stSidebar"] [data-testid="stRadioOption"][data-selected="true"]::before{
+  content:"";position:absolute;left:0;top:21%;bottom:21%;
+  width:3px;border-radius:0 3px 3px 0;background:var(--cl-primary);
+}
+[data-testid="stSidebar"] [data-testid="stRadioOption"] > div > div:first-child{
+  display:none!important;
+}
+[data-testid="stSidebar"] [data-testid="stRadioOption"] [data-testid="stMarkdownContainer"] p{
+  color:var(--cl-text);font-size:.84rem;font-weight:650;line-height:1.45;
+}
+[data-testid="stSidebar"] [data-testid="stRadioOption"][data-selected="true"] [data-testid="stMarkdownContainer"] p{
+  color:var(--cl-primary);font-weight:780;
+}
+[data-testid="stSidebar"] [data-testid="stRadioOption"]:has(input:focus-visible){
+  outline:3px solid var(--cl-turquoise)!important;
+  outline-offset:2px!important;
+}
+
 /* Accessible touch targets and focus states across all native role controls. */
 [data-testid="stApp"] button:focus-visible,
 [data-testid="stApp"] [role="tab"]:focus-visible,
