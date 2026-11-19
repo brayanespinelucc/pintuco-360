@@ -1,10 +1,7 @@
 """Premium UX regression: presentation transforms without changing contracts."""
 from pathlib import Path
 
-from streamlit.testing.v1 import AppTest
-
 from frontend import premium_components
-from tests.test_frontend_redesign import APP_FILE
 
 
 def test_record_gallery_escapes_untrusted_data_and_keeps_real_fields(monkeypatch):
