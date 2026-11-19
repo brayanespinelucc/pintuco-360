@@ -338,6 +338,61 @@ else:
         ("Plataforma", "Espacio de trabajo", "Herramientas disponibles para tu cuenta."),
     )
     page_hero(section, title, description, chip=ROLE_LABELS.get(profile["role"], "COLORLINK"))
+# Ayudas de navegación: solo presentación, nunca modifican estados de negocio.
+WORKSPACE_GUIDANCE = {
+    "Mi panel": ("VISTA GENERAL", "Encuentra lo importante", "Consulta tus expedientes y continúa desde el módulo que necesita atención."),
+    "Mi empresa": ("ORGANIZACIÓN", "Todo comienza con tu empresa", "Los datos de tu organización permiten vincular correctamente los proyectos."),
+    "Proyectos": ("PLANIFICACIÓN", "Define el contexto técnico", "Registra superficie, condiciones y requisitos antes de radicar una solicitud."),
+    "Solicitudes": ("CAPTURA", "Documenta tu necesidad", "Describe el trabajo, crea el expediente y añade fotografías cuando lo necesites."),
+    "Análisis con Gemini": ("INTELIGENCIA ASISTIDA", "Explora la clasificación de tu solicitud", "El análisis requiere consentimiento y no sustituye la revisión técnica humana."),
+    "Cálculo técnico": ("ESTIMACIÓN", "Calcula las cantidades requeridas", "Consulta resultados trazables a partir de parámetros y rendimientos registrados."),
+    "Inventario": ("DISPONIBILIDAD", "Consulta las existencias", "La evaluación propone lotes; no realiza una reserva de materiales."),
+    "Revisión técnica": ("APROBACIONES", "Atiende las observaciones", "Responde las solicitudes de información desde el mismo expediente."),
+    "Seguimiento logístico": ("SUMINISTRO", "Sigue reservas y despachos", "Consulta las órdenes relacionadas con tus solicitudes aprobadas."),
+    "Aplicación en campo": ("EJECUCIÓN", "Sigue el trabajo de campo", "Consulta avances, evidencias e incidencias de la aplicación."),
+    "Control de calidad": ("VALIDACIÓN", "Consulta las inspecciones", "Revisa los dictámenes y el historial de control de calidad."),
+}
+if profile["role"] == "cliente":
+    journey_hint(*WORKSPACE_GUIDANCE[client_page])
+elif profile["role"] == "logistica":
+    operational_context = {
+        "Reservas": (
+            "SUMINISTRO", "Asegura los materiales",
+            "Gestiona reservas únicamente sobre solicitudes aprobadas y con disponibilidad suficiente.",
+        ),
+        "Órdenes y despachos": (
+            "OPERACIONES", "De la reserva al despacho",
+            "Prepara, despacha o cancela según el estado actual de la orden.",
+        ),
+        "Aplicadores y campo": (
+            "COORDINACIÓN", "Asigna y sigue trabajos",
+            "Vincula un aplicador a las solicitudes despachadas y consulta el avance de campo.",
+        ),
+    }
+    journey_hint(*operational_context[logistics_page])
+elif profile["role"] == "calidad":
+    inspection_context = {
+        "Inspecciones pendientes": (
+            "INSPECCIÓN", "Revisa antes de decidir",
+            "Evalúa evidencias y confirma los criterios antes de registrar el dictamen.",
+        ),
+        "Historial de dictámenes": (
+            "TRAZABILIDAD", "Consulta la historia completa",
+            "Revisa inspecciones anteriores sin modificar sus decisiones.",
+        ),
+    }
+    journey_hint(*inspection_context[quality_page])
+elif profile["role"] == "aplicador":
+    journey_hint(
+        "TRABAJO EN CAMPO", "Registra cada avance",
+        "Inicia el trabajo asignado, documenta actividades y envía a calidad cuando corresponda.",
+    )
+elif profile["role"] in {"asesor", "especialista_tecnico", "administrador"}:
+    journey_hint(
+        "REVISIÓN", "Decide con información completa",
+        "Consulta los antecedentes del expediente y registra observaciones justificadas.",
+    )
+
 if profile["role"] == "logistica":
     st.subheader("Gestión logística")
     st.caption("Gestiona reservas, órdenes y trazabilidad de materiales.")
