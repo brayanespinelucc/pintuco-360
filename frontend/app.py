@@ -23,7 +23,7 @@ st.set_page_config(
     page_title="COLORLINK · Espacio de trabajo",
     page_icon="🎨",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="auto",
 )
 # Apariencia local de esta sesión. No se persiste ni modifica dato de negocio.
 apply_design_system(bool(st.session_state.get("cl_dark", False)))
@@ -102,9 +102,8 @@ def mostrar_bitacora_campo(app):
 
 
 if not st.session_state.get("access_token"):
-    showcase, login_center = st.columns([1.1, 1], gap="large")
-    with showcase:
-        premium_welcome()
+    # Formulario primero en móviles (Streamlit apila las columnas verticalmente).
+    login_center, showcase = st.columns([1, 1.1], gap="large")
     with login_center:
         brand(compact=True)
         premium_login_heading()
@@ -184,6 +183,8 @@ if not st.session_state.get("access_token"):
                 "Las nuevas cuentas comienzan como Cliente. "
                 "El acceso al selector de roles requiere autorización del administrador."
             )
+    with showcase:
+        premium_welcome()
     st.stop()
 
 profile = call("GET", "/auth/me")
