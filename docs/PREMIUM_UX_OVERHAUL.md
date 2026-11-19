@@ -79,3 +79,34 @@ No se modificaron \`backend/\`, \`database/\`, \`deploy/\`, \`render.yaml\`, dat
 5. Integrar a la rama publicada solo si estas verificaciones pasan; Render realizará un despliegue automático de la rama base.
 
 No se publicará esta rama en la URL del profesor sin aprobar la revisión.
+
+
+## 5. QA visual ejecutado en navegador real
+
+**Fecha:** 19 de noviembre de 2026. El trabajo continúa aislado en la rama premium y no modifica los servicios públicos.
+
+### Qué se comprobó
+
+- **Chromium con Playwright**, en GitHub Actions, ejecutando el Streamlit real de la rama conectado a una API FastAPI de pruebas aislada: sin credenciales de producción, sin consultas ni escrituras a Supabase.
+- **1440 × 900 (escritorio):** login, registro, los cinco roles principales (cliente, especialista técnico, logística, aplicador y calidad), los 11 módulos del cliente, subpantallas de logística y de calidad.
+- **768 × 1024 (tableta):** acceso y ausencia de scroll horizontal global.
+- **390 × 844 (móvil):** acceso con botón de ingresar visible sin desplazamiento, panel del cliente con sidebar inicialmente cerrado, apertura de sidebar desde el control accesible de Streamlit y ausencia de scroll horizontal global.
+- **Contraste y UX:** encabezado hero blanco visible frente al fondo oscuro, validación de contraste normal 4.5:1 en tokens principales frente a las superficies de los temas claro/oscuro, control de "Deploy" del desarrollador oculto utilizando el ajuste soportado \`client.toolbarMode=minimal\`.
+- **No regresión:** CI Python con **134 pruebas aprobadas**, validación de contenedor Docker/FastAPI/Streamlit en 512 MB, navegación y formularios ya implementados.
+
+### Problemas detectados mediante capturas y correcciones
+
+1. Títulos de páginas oscuros contra cabeceras azul marino → regla CSS de contraste de alta especificidad y aserción de color computado en Chromium.
+2. Formulario de acceso debajo del panel editorial en teléfonos → formulario primero en el orden DOM de Streamlit.
+3. Menú lateral invadiendo la pantalla móvil → \`initial_sidebar_state="auto"\`, con pruebas de cierre inicial y apertura posterior.
+4. Ocultación demasiado amplia del toolbar que podía interferir con navegación → reemplazada por el ajuste oficial \`st.set_option("client.toolbarMode","minimal")\` que conserva el botón para abrir el sidebar.
+5. Texto auxiliar con contraste bajo → colores \`--cl-muted\` y \`--cl-turquoise\` ajustados y prueba de contraste automatizada.
+6. Pestañas de acceso sin ciertos estilos por usar selector inexistente → selectores basados en el contenido real del Streamlit.
+
+**Evidencia:** [Workflow Chromium con capturas de todas las vistas](https://github.com/brayanespinelucc/pintuco-360/actions/runs/44540115945) y [ZIP de capturas](https://github.com/brayanespinelucc/pintuco-360/actions/runs/44540115945/artifacts/14539285657).
+
+### Límites importantes
+
+El navegador se probó contra una API simulada de solo prueba, no contra el Supabase productivo ni con las contraseñas del profesor. **Aún quedan por verificar manualmente** el flujo real end-to-end de negocio (incluyendo evidencias y casos de error), Safari/Firefox, teclado/lector de pantalla, zoom 200 %, contraste completo de todos los componentes y diseño bajo datos extremos. Los screenshots representan una muestra en los anchos seleccionados, no una garantía de perfección en todos los dispositivos.
+
+El PR permanece como **borrador** hasta decidir si se publica. No se ha cambiado el Render conectado a la rama estable.
