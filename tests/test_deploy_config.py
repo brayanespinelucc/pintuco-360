@@ -55,3 +55,22 @@ def test_blueprint_keeps_keys_out_of_git():
     assert "SUPABASE_SERVICE_ROLE" not in blueprint
     ignore = (ROOT / ".dockerignore").read_text(encoding="utf-8")
     assert ".env" in ignore and ".git" in ignore
+
+
+
+def test_startup_reports_missing_auth_names_without_revealing_secret_values(monkeypatch, capsys):
+    from deploy import serve
+
+    class StopBeforeStarting(RuntimeError):
+        pass
+
+    monkeypatch.setenv("PORT", "10000")
+    monkeypatch.setenv("SUPABASE_URL", "https://example.supabase.co")
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "")
+    monkeypatch.setattr(serve.signal, "signal", lambda *args: None)
+    monkeypatch.setattr(serve.subprocess, "Popen", lambda *args, **kwargs: (_ for _ in ()).throw(StopBeforeStarting()))
+    with pytest.raises(StopBeforeStarting):
+        serve.main()
+    output = capsys.readouterr().out
+    assert "missing SUPABASE_ANON_KEY" in output
+    assert "https://example.supabase.co" not in output
