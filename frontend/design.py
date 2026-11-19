@@ -610,10 +610,35 @@ div.stFormSubmitButton > button[kind="primary"]:hover {
 .cl-auth-form-title{font:800 clamp(1.7rem,2.7vw,2.35rem)/1.18 "Manrope",sans-serif;
  letter-spacing:-.055em;color:var(--cl-heading);margin:.7rem 0 .6rem;}
 .cl-auth-form-sub{font-size:.84rem;color:var(--cl-muted);line-height:1.65;margin:0 0 1.6rem;}
-.cl-auth-view{margin:1.3rem auto;max-width:1330px;}
-.cl-auth-view [data-testid="stTabs"]{background:var(--cl-panel);padding:1rem 1.35rem 1.3rem;
+[data-testid="stMainBlockContainer"]:has(.cl-auth-showcase) {
+  max-width:1480px!important;
+  padding-top:1rem!important;
+}
+[data-testid="stMainBlockContainer"]:has(.cl-auth-showcase) [data-testid="stVerticalBlock"]{
+  min-width:0;
+}
+[data-testid="stMainBlockContainer"]:has(.cl-auth-showcase) [data-testid="stTabs"]{background:var(--cl-panel);padding:1rem 1.35rem 1.3rem;
  border:1px solid var(--cl-border);border-radius:19px;box-shadow:var(--cl-shadow);}
-.cl-auth-view [data-testid="stForm"]{box-shadow:none;border:none;padding:.7rem 0;background:transparent;}
+[data-testid="stMainBlockContainer"]:has(.cl-auth-showcase) [data-testid="stForm"]{box-shadow:none;border:none;padding:.7rem 0;background:transparent;}
+
+
+/* Accessible touch targets and focus states across all native role controls. */
+[data-testid="stApp"] button:focus-visible,
+[data-testid="stApp"] [role="tab"]:focus-visible,
+[data-testid="stApp"] [role="radio"]:focus-visible,
+[data-testid="stApp"] [data-baseweb="select"] :focus-visible {
+  outline:3px solid var(--cl-turquoise)!important;
+  outline-offset:3px!important;
+}
+[data-testid="stSidebar"] [role="radiogroup"]>label {min-height:44px;}
+[data-testid="stTabs"] button[role="tab"]{min-height:44px;}
+[data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"]{
+  border-radius:13px;min-height:90px;
+  background:var(--cl-panel-soft);
+}
+[data-testid="stApp"] :is(.cl-record-card,.cl-step-intro,.cl-metric-card,.cl-auth-showcase) {
+  overflow-wrap:anywhere;
+}
 
 /* Shared content primitives — entity lists, cards, guided forms. */
 .cl-record-gallery-heading{
@@ -703,8 +728,8 @@ div.stFormSubmitButton > button[kind="primary"]:hover {
  .cl-auth-headline{font-size:2.2rem;max-width:425px;}
  .cl-auth-sub{font-size:.9rem;}
  .cl-auth-badges{margin-top:1.2rem;}
- .cl-auth-view{margin:.25rem auto;}
- .cl-auth-view [data-testid="stTabs"]{padding:.75rem;}
+
+ [data-testid="stMainBlockContainer"]:has(.cl-auth-showcase) [data-testid="stTabs"]{padding:.75rem;}
  .cl-metric-card{padding:1.08rem;}
 }
 @media(prefers-reduced-motion:reduce){
