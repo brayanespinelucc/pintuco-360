@@ -57,6 +57,11 @@ jobs:
         env:
           VISUAL_QA_URL: http://127.0.0.1:8501
         run: python tests/visual_smoke/browser_qa.py
+      - name: Verify login, signup, creation and role switching over isolated mock API
+        env:
+          VISUAL_QA_URL: http://127.0.0.1:8501
+          VISUAL_QA_MOCK_API: http://127.0.0.1:8111
+        run: python tests/visual_smoke/functional_qa.py
       - name: Upload visual screenshots for review
         if: always()
         uses: actions/upload-artifact@v4
