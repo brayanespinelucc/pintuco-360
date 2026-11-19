@@ -93,6 +93,13 @@ def main() -> None:
                 capture(page, f"04-role-{role}")
 
                 if role == "cliente":
+                    first_radio = page.locator(
+                        '[data-testid="stSidebar"] [role="radiogroup"] label'
+                    ).first
+                    if first_radio.count():
+                        print("QA SIDEBAR RADIO DOM:", first_radio.evaluate(
+                            "(element) => element.outerHTML.slice(0, 2500)"
+                        ))
                     expect(page.get_by_text("Solicitud a seguir")).to_be_visible()
                     assert page.locator(".cl-process-steps").count() > 0
                     page.locator('[data-testid="stSidebar"]').get_by_text(
