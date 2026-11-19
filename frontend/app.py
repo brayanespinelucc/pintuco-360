@@ -312,6 +312,7 @@ if profile["role"] == "logistica":
     )
     if logistics_page == "Reservas":
         pendientes_logistica = call("GET", "/logistica/bandeja") or []
+        st.metric("Pendientes de reserva", len(pendientes_logistica))
         st.subheader("Solicitudes aprobadas por reservar")
         if pendientes_logistica:
             st.dataframe(pendientes_logistica, use_container_width=True, hide_index=True)
@@ -357,6 +358,14 @@ if profile["role"] == "logistica":
     elif logistics_page == "Órdenes y despachos":
         st.subheader("Órdenes logísticas y trazabilidad")
         ordenes_activas = call("GET", "/logistica/ordenes") or []
+        estado_ordenes = {
+            key: sum(o.get("estado") == key for o in ordenes_activas)
+            for key in ("reservada", "preparada", "despachada")
+        }
+        m1, m2, m3 = st.columns(3)
+        m1.metric("Reservadas", estado_ordenes["reservada"])
+        m2.metric("Preparadas", estado_ordenes["preparada"])
+        m3.metric("Despachadas", estado_ordenes["despachada"])
         if ordenes_activas:
             etiquetas_ordenes = {
                 f"{o['nombre_empresa']} · {o['id'][:8]} · {o['estado']}": o["id"]
@@ -427,6 +436,7 @@ if profile["role"] == "logistica":
         )
         elegibles_campo = call("GET", "/campo/elegibles") or []
         usuarios_aplicadores = call("GET", "/campo/aplicadores") or []
+        st.metric("Solicitudes listas para asignar", len(elegibles_campo))
         if not usuarios_aplicadores:
             st.info("Crea una cuenta con rol aplicador para habilitar las asignaciones.")
         if elegibles_campo and usuarios_aplicadores:
@@ -489,8 +499,10 @@ if profile["role"] == "calidad":
     if st.session_state.pop("rf08_dictamen_exitoso", False):
         st.success("Dictamen humano de calidad registrado con trazabilidad.")
     expedientes_calidad = call("GET", "/calidad/expedientes") or []
+    st.metric("Expedientes en seguimiento", len(expedientes_calidad))
     if quality_page == "Inspecciones pendientes":
         bandeja_calidad = call("GET", "/calidad/bandeja") or []
+        st.metric("Inspecciones pendientes", len(bandeja_calidad))
         st.subheader("Bandeja pendiente de inspección")
         if not bandeja_calidad:
             st.info("No hay aplicaciones pendientes de evaluación.")
@@ -648,6 +660,7 @@ if profile["role"] == "aplicador":
     if st.session_state.pop("rf07_evento_exitoso", False):
         st.success("Actividad registrada en Supabase.")
     trabajos = call("GET", "/campo/aplicaciones") or []
+    st.metric("Trabajos asignados", len(trabajos))
     if not trabajos:
         st.info("Todavía no tienes trabajos asignados por logística.")
     else:
