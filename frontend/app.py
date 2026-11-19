@@ -10,6 +10,7 @@ from design import (
     metric_cards, section_intro,
     premium_welcome, premium_login_heading, workspace_header,
 )
+from premium_components import record_gallery, step_intro
 from process_ui import (
     render_request_panel, render_stage_explorer,
     render_state_distribution, render_stepper, render_field_progress,
@@ -971,6 +972,7 @@ if profile["role"] != "cliente":
 
 if client_page == "Mi empresa":
     section_intro("PERFIL", "Tus empresas", "Crea y consulta organizaciones vinculadas a tu cuenta.")
+    step_intro("01", "Registra tu organización", "Completa los datos necesarios para asociar proyectos a tu cuenta.")
     with st.form("crear_cliente"):
         nombre = st.text_input("Nombre de la empresa", max_chars=160)
         ciudad = st.text_input("Ciudad", max_chars=100)
@@ -981,12 +983,18 @@ if client_page == "Mi empresa":
             st.rerun()
     clientes = call("GET", "/capture/clientes") or []
     if clientes:
-        st.dataframe(clientes, use_container_width=True, hide_index=True)
+        record_gallery(
+            clientes, title_key="nombre_empresa", subtitle_key="ciudad",
+            heading="Organizaciones vinculadas",
+        )
+        with st.expander("Consultar datos completos de mis empresas"):
+            st.dataframe(clientes, use_container_width=True, hide_index=True)
     else:
         st.info("Primero registra tu empresa para crear proyectos.")
 
 if client_page == "Proyectos":
     section_intro("PLANIFICACIÓN", "Proyectos", "Organiza nuevos proyectos y consulta sus condiciones registradas.")
+    step_intro("02", "Define el alcance del proyecto", "Registra superficie, condiciones, ambiente y fecha requerida.")
     clientes = call("GET", "/capture/clientes") or []
     proyectos = call("GET", "/capture/proyectos") or []
     if clientes:
@@ -1015,10 +1023,17 @@ if client_page == "Proyectos":
     else:
         st.info("Debes registrar una empresa antes de crear un proyecto.")
     if proyectos:
-        st.dataframe(proyectos, use_container_width=True, hide_index=True)
+        record_gallery(
+            proyectos, title_key="nombre_proyecto", subtitle_key="tipo_superficie",
+            badge_key="ambiente", heading="Proyectos creados",
+            detail_keys=(("Área (m²)", "area_m2"), ("Color", "color_requerido")),
+        )
+        with st.expander("Consultar datos completos de mis proyectos"):
+            st.dataframe(proyectos, use_container_width=True, hide_index=True)
 
 if client_page == "Solicitudes":
     section_intro("CAPTURA", "Solicitudes y evidencias", "Radica necesidades y adjunta fotografías a tus solicitudes.")
+    step_intro("03", "Describe la necesidad", "Radica la solicitud y registra evidencias para su análisis posterior.")
     proyectos = call("GET", "/capture/proyectos") or []
     solicitudes = call("GET", "/capture/solicitudes") or []
     if proyectos:
@@ -1039,8 +1054,13 @@ if client_page == "Solicitudes":
     else:
         st.info("Primero debes crear un proyecto.")
     if solicitudes:
-        st.subheader("Solicitudes registradas")
-        st.dataframe(solicitudes, use_container_width=True, hide_index=True)
+        record_gallery(
+            solicitudes, title_key="descripcion_libre",
+            badge_key="estado", heading="Solicitudes registradas",
+            detail_keys=(("Fecha de registro", "created_at"),),
+        )
+        with st.expander("Consultar datos completos de las solicitudes"):
+            st.dataframe(solicitudes, use_container_width=True, hide_index=True)
         by_request = {
             f"{s['id'][:8]} · {s['estado']} · {s['created_at'][:10]}": s["id"] for s in solicitudes
         }
