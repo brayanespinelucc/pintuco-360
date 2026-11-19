@@ -1,0 +1,24 @@
+# No enviar datos locales, secretos ni archivos de desarrollo a Docker.
+.git
+.gitignore
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+**/.venv
+**/venv
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/.mypy_cache
+**/.DS_Store
+tests
+docs
+*.log
+*.sqlite
+*.db
+*.pem
+*.key
+*.p12
+*.pfx
