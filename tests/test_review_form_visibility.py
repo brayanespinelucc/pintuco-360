@@ -7,9 +7,11 @@ DESIGN = Path("frontend/design.py").read_text(encoding="utf-8")
 
 def test_review_remains_discoverable_in_sidebar_navigation():
     assert '"Revisión técnica"' in DESIGN
-    assert '"Navegación principal"' in SOURCE
+    assert 'navigation_group(label)' in SOURCE
+    assert '"SEGUIMIENTO"' in SOURCE
     assert 'if client_page == "Revisión técnica":' in SOURCE
-    assert "st.radio(" in SOURCE
+    assert 'key=f"cl_nav_' in SOURCE
+    assert 'on_click=lambda chosen=page' in SOURCE
 
 
 def test_form_is_available_for_pending_customer_review():
