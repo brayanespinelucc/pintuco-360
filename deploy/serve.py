@@ -50,6 +50,22 @@ def main() -> int:
     # The Streamlit server calls FastAPI over a private loopback connection.
     # Never expose the API by binding Uvicorn to 0.0.0.0 in this deployment.
     os.environ["API_BASE_URL"] = f"http://127.0.0.1:{PRIVATE_API_PORT}"
+    # Verificación de presencia exclusivamente: nunca se imprimen secretos.
+    missing = [
+        name for name in ("SUPABASE_URL", "SUPABASE_ANON_KEY")
+        if not os.environ.get(name, "").strip()
+    ]
+    if missing:
+        print(
+            "COLORLINK AUTH CONFIG INCOMPLETE: missing " + ", ".join(missing),
+            flush=True,
+        )
+    else:
+        print(
+            "COLORLINK AUTH CONFIG: required variables present "
+            "(credentials/connectivity not validated)",
+            flush=True,
+        )
     api_cmd, ui_cmd = commands(port)
     processes: list[subprocess.Popen] = []
     shutting_down = False
