@@ -409,6 +409,398 @@ hr { border-color: var(--cl-border); }
  .cl-metric-value { font-size:1.7rem; }
  div.stButton > button { min-height:2.85rem; }
 }
+
+/* COLORLINK STUDIO / Premium editorial design language, 2026.
+   Single source of truth for all Streamlit native controls and role screens. */
+[data-testid="stApp"] {
+  --cl-bg:#F0F3F7;
+  --cl-panel:#FFFFFF;
+  --cl-panel-soft:#F6F8FB;
+  --cl-text:#28354B;
+  --cl-heading:#0A1730;
+  --cl-muted:#596B82;
+  --cl-border:#DFE5EE;
+  --cl-primary:#2861E7;
+  --cl-primary-hover:#174ECC;
+  --cl-primary-weak:#ECF2FF;
+  --cl-turquoise:#00786F;
+  --cl-success:#137E5A;
+  --cl-shadow:0 8px 36px rgba(18,36,67,.055), 0 1px 3px rgba(18,36,67,.025);
+  background:
+    radial-gradient(ellipse 900px 540px at 94% -9%,rgba(48,132,226,.11),transparent 70%),
+    radial-gradient(ellipse 610px 520px at 0% 99%,rgba(13,167,158,.045),transparent 70%),
+    var(--cl-bg);
+}
+[data-testid="stApp"]:has(#cl-theme-dark) {
+  --cl-bg:#080F1D; --cl-panel:#101C2D; --cl-panel-soft:#17253B;
+  --cl-text:#CAD6EA; --cl-heading:#F6F8FE; --cl-muted:#9BABBF;
+  --cl-border:#273750; --cl-primary:#93B5FF; --cl-primary-hover:#B1C9FF;
+  --cl-primary-weak:#203551; --cl-turquoise:#74E2D1; --cl-success:#76E0B1;
+  --cl-shadow:0 16px 48px rgba(0,0,0,.16);
+  background:
+    radial-gradient(ellipse 850px 620px at 95% -5%,rgba(41,96,188,.14),transparent 73%),var(--cl-bg);
+}
+[data-testid="stAppViewContainer"] {background:transparent;}
+[data-testid="stHeader"] {height:2.25rem; background:transparent;}
+[data-testid="stMainBlockContainer"] {
+  max-width:1470px !important;
+  padding:1.05rem clamp(1.2rem,3.8vw,4.3rem) 5rem !important;
+}
+[data-testid="stSidebar"] {
+  background:var(--cl-panel);
+  border-right:1px solid var(--cl-border);
+  box-shadow:7px 0 35px rgba(17,42,79,.018);
+}
+[data-testid="stSidebar"] > div:first-child {padding-top:1.3rem;}
+[data-testid="stSidebar"] div[role="radiogroup"] {gap:.2rem;}
+[data-testid="stSidebar"] div[role="radiogroup"] > label {
+  position:relative; padding:.7rem .88rem;
+  border-radius:12px; transition:background .18s ease,color .18s ease;
+}
+[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked){
+  background:var(--cl-primary-weak); box-shadow:inset 0 0 0 1px rgba(73,121,218,.08);
+}
+[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked)::before{
+  content:"";position:absolute;left:0;top:24%;bottom:24%;
+  width:3px;border-radius:0 3px 3px 0;background:var(--cl-primary);
+}
+[data-testid="stSidebar"] div[role="radiogroup"] > label p {font-weight:620;letter-spacing:-.01em;}
+.cl-brand {gap:.75rem;margin:.1rem 0 1.7rem;}
+.cl-mark {
+  border-radius:14px;width:44px;height:44px;
+  background:linear-gradient(145deg,#17295A 3%,#2861E7 57%,#00A99D);
+  box-shadow:0 10px 22px rgba(35,91,205,.20);
+}
+.cl-brand-title{font-size:1.23rem;letter-spacing:-.055em;}
+.cl-brand-sub{font-size:.61rem;letter-spacing:.19em;}
+.cl-user-card{
+  background:linear-gradient(125deg,var(--cl-panel-soft),var(--cl-panel));
+  border:1px solid var(--cl-border);border-radius:15px;
+  padding:1rem 1.05rem;margin:0 0 1.45rem;
+}
+.cl-user-role{display:flex;gap:.35rem;align-items:center;}
+.cl-user-role::before{content:"";display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--cl-success);}
+.cl-nav-label{font-size:.64rem;letter-spacing:.19em;margin:1rem 0 .5rem;}
+/* App header: different information hierarchy from Streamlit's generic headings. */
+.cl-workspace-bar{
+ display:flex;align-items:center;justify-content:space-between;gap:1rem;
+ padding:.3rem 0 1rem;border-bottom:1px solid var(--cl-border);margin-bottom:1.3rem;
+}
+.cl-crumb{display:flex;align-items:center;gap:.62rem;color:var(--cl-muted);
+ font-size:.76rem;flex-wrap:wrap;}
+.cl-crumb strong{color:var(--cl-heading);font-weight:750;}
+.cl-crumb-sep{color:var(--cl-muted);opacity:.5;}
+.cl-workspace-status{
+ display:inline-flex;align-items:center;gap:.48rem;
+ color:var(--cl-muted);font-size:.73rem;font-weight:700;
+ border:1px solid var(--cl-border);background:var(--cl-panel);padding:.43rem .72rem;border-radius:50px;
+}
+.cl-workspace-status::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--cl-success);}
+.cl-hero{
+  min-height:190px;margin:.1rem 0 1.7rem;
+  background:
+    radial-gradient(ellipse 320px 250px at 85% 0%,rgba(104,191,228,.32),transparent 70%),
+    linear-gradient(118deg,#101D39 0%,#19345D 54%,#0C6475 115%);
+  border:1px solid rgba(255,255,255,.1);
+  border-radius:23px;padding:clamp(1.45rem,3vw,2.25rem) clamp(1.5rem,3.3vw,2.65rem);
+  box-shadow:0 16px 45px rgba(19,39,73,.14);
+}
+.cl-hero::before{width:390px;height:390px;right:-100px;top:-220px;border-color:rgba(255,255,255,.13);}
+.cl-hero::after{width:280px;height:280px;right:65px;bottom:-245px;border-color:rgba(255,255,255,.09);}
+.cl-hero-kicker{font-size:.65rem;letter-spacing:.23em;color:#81E5DB;}
+.cl-hero-title{font-size:clamp(1.85rem,3.1vw,2.7rem)!important;max-width:780px;letter-spacing:-.05em!important;}
+.cl-hero-desc{font-size:.93rem;max-width:660px;color:#DEEAF7;}
+.cl-hero-chip{background:rgba(18,174,161,.20);border-color:rgba(159,243,225,.26);font-size:.63rem;letter-spacing:.065em;}
+/* Every module adopts this typography and compositional rhythm. */
+.cl-section-head{font-size:1.3rem;letter-spacing:-.045em;margin-top:1.7rem;}
+.cl-section-eyebrow{color:var(--cl-turquoise);letter-spacing:.19em;}
+h1,h2,h3,h4,h5,h6{letter-spacing:-.04em!important;}
+[data-testid="stForm"] {
+ background:var(--cl-panel);
+ border:1px solid var(--cl-border);
+ border-radius:20px;
+ padding:clamp(1.15rem,2.1vw,1.8rem);
+ box-shadow:var(--cl-shadow);
+}
+[data-testid="stForm"]:focus-within{border-color:color-mix(in srgb,var(--cl-primary) 43%,var(--cl-border));}
+[data-testid="stWidgetLabel"] p{font-weight:660;}
+[data-testid="stTextInput"] input,
+[data-testid="stTextArea"] textarea,
+[data-testid="stNumberInput"] input,
+[data-testid="stDateInput"] input,
+[data-testid="stSelectbox"] [data-baseweb="select"]>div {
+ border-radius:12px!important; min-height:2.7rem;
+ border:1px solid var(--cl-border)!important;
+ transition:border-color .16s ease,box-shadow .16s ease;
+}
+[data-testid="stTextInput"] input:focus,[data-testid="stTextArea"] textarea:focus,
+[data-testid="stNumberInput"] input:focus{
+ border-color:var(--cl-primary)!important;
+ box-shadow:0 0 0 3px color-mix(in srgb,var(--cl-primary) 13%,transparent)!important;
+}
+div.stButton > button,div.stFormSubmitButton > button {
+ border-radius:12px;min-height:2.85rem;font-weight:720;
+ transition:transform .17s ease,background .17s ease,box-shadow .17s ease;
+}
+div.stButton > button[kind="primary"],div.stFormSubmitButton > button[kind="primary"]{
+ background:linear-gradient(115deg,#1D50D7,#3478ED);
+ border-color:#235BD8;color:white;box-shadow:0 7px 17px rgba(38,96,217,.20);
+}
+div.stButton > button[kind="primary"]:hover,
+div.stFormSubmitButton > button[kind="primary"]:hover {
+ background:linear-gradient(115deg,#1847C2,#2068E5);transform:translateY(-1px);
+ box-shadow:0 12px 22px rgba(38,96,217,.24);color:white;
+}
+[data-testid="stAlert"]{border:1px solid var(--cl-border);border-radius:15px;}
+[data-testid="stMetric"]{border-radius:17px;box-shadow:var(--cl-shadow);}
+[data-testid="stMetricValue"]{font-size:clamp(1.35rem,2.3vw,1.85rem);}
+[data-testid="stDataFrame"]{border-radius:16px;box-shadow:var(--cl-shadow);}
+[data-testid="stExpander"]{border-radius:15px;box-shadow:var(--cl-shadow);}
+[data-testid="stTabs"] [role="tablist"] {
+ border-bottom:1px solid var(--cl-border);gap:.7rem;
+}
+[data-testid="stTabs"] button[role="tab"]{font-weight:720;padding:.75rem 1.1rem;letter-spacing:-.01em;}
+[data-testid="stTabs"] button[aria-selected="true"]{color:var(--cl-primary)!important;}
+[data-testid="stFileUploader"]{border:1px dashed var(--cl-border);padding:.45rem;border-radius:15px;}
+.cl-metric-grid{gap:.9rem;}
+.cl-metric-card{border-radius:18px;padding:1.3rem;box-shadow:var(--cl-shadow);}
+.cl-metric-icon{border-radius:12px;width:39px;height:39px;}
+.cl-metric-value{font-size:2.1rem;}
+.cl-process-summary{border-radius:19px;padding:1.65rem;}
+.cl-process-summary::before{width:5px;}
+.cl-step{border-radius:13px;}
+.cl-step-actual{background:var(--cl-primary-weak);}
+.cl-state-item{border-radius:13px;box-shadow:var(--cl-shadow);}
+.cl-event-timeline{margin-top:1.1rem;}
+/* Premium split-screen login and self-service registration. */
+.cl-auth-showcase{
+ position:relative;isolation:isolate;overflow:hidden;
+ min-height:645px;padding:clamp(2rem,4vw,3.5rem);
+ border:1px solid rgba(255,255,255,.11);
+ border-radius:26px;
+ background:
+  radial-gradient(circle at 88% 22%,rgba(74,204,202,.34),transparent 28%),
+  radial-gradient(circle at 13% 91%,rgba(34,97,239,.34),transparent 34%),
+  linear-gradient(140deg,#0B1831 0%,#182D53 58%,#074E61 115%);
+ box-shadow:0 22px 60px rgba(10,26,60,.19); color:white;
+ display:flex;flex-direction:column;justify-content:space-between;
+}
+.cl-auth-showcase::before{
+ content:"";position:absolute;z-index:-1;right:-165px;top:105px;
+ width:510px;height:510px;border-radius:50%;
+ border:1px solid rgba(255,255,255,.16);
+ box-shadow:0 0 0 45px rgba(255,255,255,.026),0 0 0 100px rgba(255,255,255,.018);
+}
+.cl-auth-eyebrow{font-size:.7rem;letter-spacing:.26em;font-weight:750;color:#A3E7E2;text-transform:uppercase;}
+.cl-auth-headline{
+ font:800 clamp(2.5rem,4.2vw,4.4rem)/1.11 "Manrope",sans-serif;
+ max-width:580px;letter-spacing:-.067em;margin:1.15rem 0 1.4rem;color:#FFF;
+}
+.cl-auth-headline em{font-style:normal;color:#80E0D7;}
+.cl-auth-sub{color:#D3DFEE;font-size:1.05rem;line-height:1.7;max-width:490px;}
+.cl-auth-badges{display:flex;gap:.7rem;flex-wrap:wrap;margin-top:2rem;}
+.cl-auth-badges span{
+ padding:.65rem .84rem;border-radius:10px;color:#EAF6FF;
+ background:rgba(255,255,255,.09);border:1px solid rgba(255,255,255,.14);
+ font-size:.73rem;font-weight:700;
+}
+.cl-auth-bottom{font-size:.72rem;color:#AEC0DA;font-weight:600;letter-spacing:.05em;}
+.cl-auth-form-eyebrow{text-transform:uppercase;letter-spacing:.18em;
+ font-size:.68rem;color:var(--cl-turquoise);font-weight:800;}
+.cl-auth-form-title{font:800 clamp(1.7rem,2.7vw,2.35rem)/1.18 "Manrope",sans-serif;
+ letter-spacing:-.055em;color:var(--cl-heading);margin:.7rem 0 .6rem;}
+.cl-auth-form-sub{font-size:.84rem;color:var(--cl-muted);line-height:1.65;margin:0 0 1.6rem;}
+[data-testid="stMainBlockContainer"]:has(.cl-auth-showcase) {
+  max-width:1480px!important;
+  padding-top:1rem!important;
+}
+[data-testid="stMainBlockContainer"]:has(.cl-auth-showcase) [data-testid="stVerticalBlock"]{
+  min-width:0;
+}
+[data-testid="stMainBlockContainer"]:has(.cl-auth-showcase) [data-testid="stTabs"]{background:var(--cl-panel);padding:1rem 1.35rem 1.3rem;
+ border:1px solid var(--cl-border);border-radius:19px;box-shadow:var(--cl-shadow);}
+[data-testid="stMainBlockContainer"]:has(.cl-auth-showcase) [data-testid="stForm"]{box-shadow:none;border:none;padding:.7rem 0;background:transparent;}
+
+
+
+/* Browser-inspected Streamlit radio markup: present navigation as active pills,
+   not form-selection circles. The input remains keyboard-accessible. */
+[data-testid="stSidebar"] [data-testid="stRadioOption"]{
+  position:relative;
+  display:block;
+  width:100%;
+  padding:.68rem .88rem!important;
+  border-radius:12px;
+  background:transparent;
+  transition:background .16s ease,color .16s ease;
+}
+[data-testid="stSidebar"] [data-testid="stRadioOption"]:hover{
+  background:var(--cl-panel-soft);
+}
+[data-testid="stSidebar"] [data-testid="stRadioOption"][data-selected="true"]{
+  background:var(--cl-primary-weak)!important;
+}
+[data-testid="stSidebar"] [data-testid="stRadioOption"][data-selected="true"]::before{
+  content:"";position:absolute;left:0;top:21%;bottom:21%;
+  width:3px;border-radius:0 3px 3px 0;background:var(--cl-primary);
+}
+[data-testid="stSidebar"] [data-testid="stRadioOption"] > div > div:first-child{
+  display:none!important;
+}
+[data-testid="stSidebar"] [data-testid="stRadioOption"] [data-testid="stMarkdownContainer"] p{
+  color:var(--cl-text);font-size:.84rem;font-weight:650;line-height:1.45;
+}
+[data-testid="stSidebar"] [data-testid="stRadioOption"][data-selected="true"] [data-testid="stMarkdownContainer"] p{
+  color:var(--cl-primary);font-weight:780;
+}
+[data-testid="stSidebar"] [data-testid="stRadioOption"]:has(input:focus-visible){
+  outline:3px solid var(--cl-turquoise)!important;
+  outline-offset:2px!important;
+}
+
+/* Accessible touch targets and focus states across all native role controls. */
+[data-testid="stApp"] button:focus-visible,
+[data-testid="stApp"] [role="tab"]:focus-visible,
+[data-testid="stApp"] [role="radio"]:focus-visible,
+[data-testid="stApp"] [data-baseweb="select"] :focus-visible {
+  outline:3px solid var(--cl-turquoise)!important;
+  outline-offset:3px!important;
+}
+[data-testid="stSidebar"] [role="radiogroup"]>label {min-height:44px;}
+[data-testid="stTabs"] button[role="tab"]{min-height:44px;}
+[data-testid="stFileUploader"] [data-testid="stFileUploaderDropzone"]{
+  border-radius:13px;min-height:90px;
+  background:var(--cl-panel-soft);
+}
+[data-testid="stApp"] :is(.cl-record-card,.cl-step-intro,.cl-metric-card,.cl-auth-showcase) {
+  overflow-wrap:anywhere;
+}
+
+/* Shared content primitives — entity lists, cards, guided forms. */
+.cl-record-gallery-heading{
+ display:flex;justify-content:space-between;align-items:center;gap:.7rem;
+ margin:1.45rem 0 .8rem;flex-wrap:wrap;
+}
+.cl-record-gallery-heading strong{
+ color:var(--cl-heading);font:800 1rem/1.3 "Manrope",sans-serif;letter-spacing:-.025em;
+}
+.cl-record-gallery-heading span{font-size:.75rem;color:var(--cl-muted);}
+.cl-record-grid{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;
+ margin-bottom:1.1rem;
+}
+.cl-record-card{
+ min-height:174px;border:1px solid var(--cl-border);border-radius:18px;
+ background:var(--cl-panel);padding:1.25rem 1.35rem;
+ box-shadow:var(--cl-shadow);
+ transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+ overflow:hidden;
+}
+.cl-record-card:hover{
+ transform:translateY(-2px);
+ border-color:color-mix(in srgb,var(--cl-primary) 42%,var(--cl-border));
+ box-shadow:0 14px 38px rgba(12,35,70,.085);
+}
+.cl-record-top{display:flex;justify-content:space-between;align-items:center;}
+.cl-record-monogram{
+ display:grid;place-items:center;
+ width:36px;height:36px;border-radius:12px;
+ background:var(--cl-primary-weak);color:var(--cl-primary);
+ font:800 1rem/1 "Manrope",sans-serif;
+}
+.cl-record-badge{
+ font-size:.66rem;font-weight:750;color:var(--cl-primary);
+ background:var(--cl-primary-weak);padding:.36rem .64rem;border-radius:100px;
+ max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.cl-record-card h3{
+ margin:.9rem 0 .25rem;font-size:.97rem!important;
+ line-height:1.38;letter-spacing:-.025em;
+ overflow-wrap:anywhere;
+}
+.cl-record-description{
+ font-size:.77rem;color:var(--cl-muted);line-height:1.45;margin:0 0 .6rem;
+ overflow-wrap:anywhere;
+}
+.cl-record-footer{
+ border-top:1px solid var(--cl-border);padding-top:.7rem;
+ margin-top:.85rem;display:flex;gap:1rem;flex-wrap:wrap;
+}
+.cl-record-meta{display:flex;flex-direction:column;gap:.15rem;font-size:.7rem;min-width:0;}
+.cl-record-meta small{font-size:.65rem;color:var(--cl-muted);}
+.cl-record-meta strong{font-size:.73rem;color:var(--cl-heading);overflow-wrap:anywhere;}
+.cl-record-more{font-size:.75rem;color:var(--cl-muted);}
+.cl-step-intro{
+ display:flex;align-items:center;gap:1rem;margin:1.25rem 0 1rem;
+ background:var(--cl-panel);border:1px solid var(--cl-border);
+ border-radius:17px;padding:1.05rem 1.25rem;
+}
+.cl-step-number{
+ flex-shrink:0;width:38px;height:38px;display:grid;place-items:center;
+ background:var(--cl-primary-weak);color:var(--cl-primary);
+ border-radius:12px;font:800 .85rem/1 "Manrope",sans-serif;
+}
+.cl-step-intro h3{font-size:.94rem!important;margin:0 0 .25rem;}
+.cl-step-intro p{font-size:.76rem;color:var(--cl-muted);margin:0;line-height:1.5;}
+@media(max-width:1050px){.cl-record-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:650px){
+ .cl-record-grid{grid-template-columns:1fr;}
+ .cl-record-card{min-height:0;}
+ .cl-step-intro{padding:.9rem;}
+}
+
+
+/* Visual QA regression: real browser showed default Streamlit heading ink in
+   the dark hero despite the class-specific heading declaration. */
+[data-testid="stApp"] .cl-hero h1.cl-hero-title {
+  color:#FFFFFF!important;
+  -webkit-text-fill-color:#FFFFFF!important;
+}
+/* Streamlit developer/Deploy chrome is not part of the customer product.
+   Keep the sidebar expand/collapse control in the separate stSidebar header. */
+/* Preserve the toolbar shell: Streamlit places the mobile sidebar opener there. */
+[data-testid="stDeployButton"], #MainMenu, [data-testid="stMainMenu"] {
+  display:none!important;
+}
+[data-testid="stDecoration"] {display:none!important;}
+@media(max-width:750px){
+  [data-testid="stMainBlockContainer"]:has(.cl-auth-showcase) {
+    padding-top:.4rem!important;
+  }
+  .cl-auth-showcase {
+    min-height:245px;
+    padding:1.1rem 1.25rem;
+  }
+  .cl-auth-headline {font-size:1.9rem;line-height:1.1;margin:.75rem 0;}
+  .cl-auth-sub {font-size:.84rem;line-height:1.5;margin:0;}
+  .cl-auth-badges {margin-top:.75rem;gap:.35rem;}
+  .cl-auth-badges span {padding:.38rem .55rem;font-size:.62rem;}
+  .cl-auth-bottom {display:none;}
+}
+
+/* Reduced motion takes priority over decorative transitions. */
+@media(max-width:1000px){
+ .cl-auth-showcase{min-height:420px;padding:2rem;}
+ .cl-auth-headline{font-size:2.7rem;}
+}
+@media(max-width:750px){
+ [data-testid="stMainBlockContainer"]{padding:1rem 1rem 4rem!important;}
+ .cl-workspace-bar{align-items:flex-start;}
+ .cl-workspace-status{font-size:.67rem;}
+ .cl-hero{border-radius:17px;min-height:0;padding:1.4rem 1.3rem;}
+ .cl-hero-chip{position:static;display:inline-block;margin-top:1rem;}
+ .cl-auth-showcase{min-height:330px;padding:1.5rem;border-radius:19px;}
+ .cl-auth-headline{font-size:2.2rem;max-width:425px;}
+ .cl-auth-sub{font-size:.9rem;}
+ .cl-auth-badges{margin-top:1.2rem;}
+
+ [data-testid="stMainBlockContainer"]:has(.cl-auth-showcase) [data-testid="stTabs"]{padding:.75rem;}
+ .cl-metric-card{padding:1.08rem;}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{animation:none!important;transition:none!important;scroll-behavior:auto!important;}
+}
+
 @media (prefers-reduced-motion:reduce) {
  *, *::before,*::after { animation-duration:.01ms !important;
  transition-duration:.01ms !important; scroll-behavior:auto !important; }
@@ -475,4 +867,51 @@ def section_intro(eyebrow: str, title: str, description: str = "") -> None:
         f'<h2 class="cl-section-head">{escape(title)}</h2>'
         f'<p class="cl-section-text">{escape(description)}</p>',
         unsafe_allow_html=True,
+    )
+
+
+
+def premium_welcome() -> None:
+    """Editorial left-hand login surface; purely presentational HTML."""
+    st.html(
+        '<section class="cl-auth-showcase" aria-label="Presentación COLORLINK">'
+        '<div><p class="cl-auth-eyebrow">COLORLINK / WORKSPACE</p>'
+        '<h1 class="cl-auth-headline">Cada proyecto.<br>'
+        'Cada etapa.<br><em>Todo conectado.</em></h1>'
+        '<p class="cl-auth-sub">Una experiencia integral para planificar, '
+        'coordinar y dar seguimiento a tus proyectos, '
+        'desde la primera solicitud hasta su cierre.</p>'
+        '<div class="cl-auth-badges">'
+        '<span>01 / Planifica</span><span>02 / Coordina</span>'
+        '<span>03 / Supervisa</span></div></div>'
+        '<p class="cl-auth-bottom">INTELIGENCIA · OPERACIONES · TRAZABILIDAD</p>'
+        '</section>'
+    )
+
+
+def premium_login_heading() -> None:
+    """Clear authentication hierarchy without touching Streamlit forms."""
+    st.html(
+        '<section aria-label="Acceder a COLORLINK">'
+        '<p class="cl-auth-form-eyebrow">UN ESPACIO PARA TU TRABAJO</p>'
+        '<h2 class="cl-auth-form-title">Tu espacio comienza aquí.</h2>'
+        '<p class="cl-auth-form-sub">Inicia sesión o crea una cuenta '
+        'para gestionar tus proyectos y avanzar con tu equipo.</p>'
+        '</section>'
+    )
+
+
+def workspace_header(role: str, current: str) -> None:
+    """Accessible, truthful location breadcrumb, never a duplicate navigation route."""
+    from html import escape as safe
+    friendly_role = ROLE_LABELS.get(role, str(role).replace("_", " ").title())
+    st.html(
+        '<nav class="cl-workspace-bar" aria-label="Ubicación actual">'
+        '<div class="cl-crumb"><span>COLORLINK</span>'
+        '<span class="cl-crumb-sep" aria-hidden="true">/</span>'
+        '<span>' + safe(friendly_role) + '</span>'
+        '<span class="cl-crumb-sep" aria-hidden="true">/</span>'
+        '<strong aria-current="page">' + safe(str(current)) + '</strong></div>'
+        '<span class="cl-workspace-status">Espacio de trabajo</span>'
+        '</nav>'
     )
