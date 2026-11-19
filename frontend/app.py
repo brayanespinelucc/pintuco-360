@@ -19,6 +19,9 @@ from process_ui import (
 
 load_dotenv()
 API = os.getenv("API_BASE_URL", "http://localhost:8000").rstrip("/")
+# Streamlit officially supports hiding developer chrome without removing
+# the mobile sidebar opener (client.toolbarMode is a supported dynamic option).
+st.set_option("client.toolbarMode", "minimal")
 st.set_page_config(
     page_title="COLORLINK · Espacio de trabajo",
     page_icon="🎨",
