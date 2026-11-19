@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 from design import (
     PAGES, ROLE_PAGES, ROLE_LABELS,
     apply_design_system, brand, user_identity, page_hero,
-    metric_cards, section_intro,
+    metric_cards, section_intro, navigation_group, workspace_breadcrumb,
+    auth_showcase, auth_form_heading, auth_security_note, module_flag,
 )
 from process_ui import (
     render_request_panel, render_stage_explorer,
@@ -100,15 +101,13 @@ def mostrar_bitacora_campo(app):
 
 
 if not st.session_state.get("access_token"):
-    _, login_center, _ = st.columns([1, 1.5, 1])
+    showcase, login_center = st.columns(
+        [1.1, 0.9], gap="large", vertical_alignment="center"
+    )
+    with showcase:
+        auth_showcase()
     with login_center:
-        brand(compact=True)
-        page_hero(
-            "ACCESO SEGURO",
-            "Bienvenido a COLORLINK",
-            "Gestiona tus proyectos, solicitudes y revisiones en un solo lugar.",
-            chip="GESTIÓN INTEGRAL",
-        )
+        auth_form_heading()
         entry, sign_up = st.tabs(["Iniciar sesión", "Crear cuenta"])
         with entry:
             st.caption("Ingresa con tu cuenta autorizada para continuar.")
@@ -185,6 +184,7 @@ if not st.session_state.get("access_token"):
                 "Las nuevas cuentas comienzan como Cliente. "
                 "El acceso al selector de roles requiere autorización del administrador."
             )
+        auth_security_note()
     st.stop()
 
 profile = call("GET", "/auth/me")
@@ -201,38 +201,65 @@ with st.sidebar:
         profile["role"],
     )
     if profile["role"] == "cliente":
-        st.markdown(
-            '<p class="cl-nav-label">Tu espacio de trabajo</p>',
-            unsafe_allow_html=True,
+        # Navigation is a grouped command menu; st.session_state remains the
+        # sole source for client_page so existing quick links still work.
+        allowed_client_pages = {page[0] for page in PAGES}
+        if st.session_state.get("cl_page") not in allowed_client_pages:
+            st.session_state["cl_page"] = "Mi panel"
+        client_page = st.session_state["cl_page"]
+        menu_groups = (
+            ("GENERAL", ("Mi panel", "Mi empresa", "Proyectos")),
+            ("SOLICITUDES", ("Solicitudes", "Análisis con Gemini", "Cálculo técnico", "Inventario")),
+            ("SEGUIMIENTO", (
+                "Revisión técnica", "Seguimiento logístico",
+                "Aplicación en campo", "Control de calidad",
+            )),
         )
-        client_page = st.radio(
-            "Navegación principal",
-            [p[0] for p in PAGES],
-            key="cl_page",
-            label_visibility="collapsed",
-        )
+        for label, pages in menu_groups:
+            navigation_group(label)
+            for page in pages:
+                st.button(
+                    page,
+                    key=f"cl_nav_{next(i for i,p in enumerate(PAGES) if p[0] == page)}",
+                    type="primary" if client_page == page else "secondary",
+                    use_container_width=True,
+                    on_click=lambda chosen=page: st.session_state.update(
+                        {"cl_page": chosen}
+                    ),
+                )
     elif profile["role"] == "logistica":
-        st.markdown(
-            '<p class="cl-nav-label">Centro de operaciones</p>',
-            unsafe_allow_html=True,
-        )
-        logistics_page = st.radio(
-            "Navegación de operaciones",
-            ["Reservas", "Órdenes y despachos", "Aplicadores y campo"],
-            key="cl_logistics_page",
-            label_visibility="collapsed",
-        )
+        logistic_pages = ("Reservas", "Órdenes y despachos", "Aplicadores y campo")
+        if st.session_state.get("cl_logistics_page") not in logistic_pages:
+            st.session_state["cl_logistics_page"] = logistic_pages[0]
+        logistics_page = st.session_state["cl_logistics_page"]
+        navigation_group("CENTRO DE OPERACIONES")
+        for i, page in enumerate(logistic_pages):
+            st.button(
+                page, key=f"cl_log_nav_{i}",
+                type="primary" if logistics_page == page else "secondary",
+                use_container_width=True,
+                on_click=lambda chosen=page: st.session_state.update(
+                    {"cl_logistics_page": chosen}
+                ),
+            )
     elif profile["role"] == "calidad":
-        st.markdown(
-            '<p class="cl-nav-label">Centro de inspecciones</p>',
-            unsafe_allow_html=True,
-        )
-        quality_page = st.radio(
-            "Navegación de calidad",
-            ["Inspecciones pendientes", "Historial de dictámenes"],
-            key="cl_quality_page",
-            label_visibility="collapsed",
-        )
+        quality_pages = ("Inspecciones pendientes", "Historial de dictámenes")
+        if st.session_state.get("cl_quality_page") not in quality_pages:
+            st.session_state["cl_quality_page"] = quality_pages[0]
+        quality_page = st.session_state["cl_quality_page"]
+        navigation_group("CENTRO DE INSPECCIONES")
+        for i, page in enumerate(quality_pages):
+            st.button(
+                page, key=f"cl_quality_nav_{i}",
+                type="primary" if quality_page == page else "secondary",
+                use_container_width=True,
+                on_click=lambda chosen=page: st.session_state.update(
+                    {"cl_quality_page": chosen}
+                ),
+            )
+    else:
+        navigation_group("TU ESPACIO")
+        st.caption("Las herramientas de esta cuenta se muestran en la vista principal.")
     if profile.get("can_switch_roles"):
         st.divider()
         st.markdown(
@@ -274,6 +301,16 @@ with st.sidebar:
         st.session_state.pop("cl_page", None)
         st.rerun()
     st.caption("COLORLINK · Gestión integral de proyectos")
+
+workspace_page = (
+    client_page if profile["role"] == "cliente" else
+    logistics_page if profile["role"] == "logistica" else
+    quality_page if profile["role"] == "calidad" else
+    ROLE_PAGES.get(profile["role"], ("", "Espacio de trabajo", ""))[1]
+)
+workspace_breadcrumb(
+    ROLE_LABELS.get(profile["role"], "COLORLINK"), workspace_page
+)
 
 if profile["role"] == "cliente":
     page_meta = next(p for p in PAGES if p[0] == client_page)
