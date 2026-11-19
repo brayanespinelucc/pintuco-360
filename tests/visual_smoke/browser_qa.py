@@ -110,6 +110,41 @@ def main() -> None:
                     )
                     expect(page.locator(".cl-record-card")).to_have_count(1)
                     capture(page, "06-solicitudes-desktop")
+                    remaining_pages = [
+                        ("Mi empresa", "empresa"),
+                        ("Análisis con Gemini", "gemini"),
+                        ("Cálculo técnico", "calculo"),
+                        ("Inventario", "inventario"),
+                        ("Revisión técnica", "revision"),
+                        ("Seguimiento logístico", "logistica"),
+                        ("Aplicación en campo", "campo"),
+                        ("Control de calidad", "calidad"),
+                    ]
+                    for label, file_slug in remaining_pages:
+                        page.locator('[data-testid="stSidebar"]').get_by_text(
+                            label, exact=True,
+                        ).click()
+                        expect(page.locator(".cl-workspace-bar")).to_be_visible()
+                        assert page.locator('[data-testid="stException"]').count() == 0
+                        capture(page, f"09-client-{file_slug}")
+                elif role == "logistica":
+                    for label, slug in (
+                        ("Órdenes y despachos", "ordenes"),
+                        ("Aplicadores y campo", "asignacion"),
+                    ):
+                        page.locator('[data-testid="stSidebar"]').get_by_text(
+                            label, exact=True,
+                        ).click()
+                        expect(page.locator(".cl-workspace-bar")).to_be_visible()
+                        assert page.locator('[data-testid="stException"]').count() == 0
+                        capture(page, f"10-logistica-{slug}")
+                elif role == "calidad":
+                    page.locator('[data-testid="stSidebar"]').get_by_text(
+                        "Historial de dictámenes", exact=True,
+                    ).click()
+                    expect(page.locator(".cl-workspace-bar")).to_be_visible()
+                    assert page.locator('[data-testid="stException"]').count() == 0
+                    capture(page, "11-calidad-historial")
                 page.close()
 
             mobile_user = browser.new_page(
