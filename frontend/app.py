@@ -408,7 +408,9 @@ if profile["role"] == "logistica":
         st.metric("Pendientes de reserva", len(pendientes_logistica))
         st.subheader("Solicitudes aprobadas por reservar")
         if pendientes_logistica:
-            st.dataframe(pendientes_logistica, use_container_width=True, hide_index=True)
+            record_cards(pendientes_logistica, title_field="nombre_proyecto", detail_field="nombre_empresa")
+            with st.expander("Consultar solicitudes disponibles"):
+                st.dataframe(pendientes_logistica, use_container_width=True, hide_index=True)
             opciones_pendientes = {
                 f"{p['nombre_empresa']} · {p['nombre_proyecto']} · "
                 f"{p['envases_requeridos']} envases": p["solicitud_id"]
@@ -460,6 +462,7 @@ if profile["role"] == "logistica":
         m2.metric("Preparadas", estado_ordenes["preparada"])
         m3.metric("Despachadas", estado_ordenes["despachada"])
         if ordenes_activas:
+            record_cards(ordenes_activas, title_field="nombre_empresa", state_field="estado")
             etiquetas_ordenes = {
                 f"{o['nombre_empresa']} · {o['id'][:8]} · {o['estado']}": o["id"]
                 for o in ordenes_activas
@@ -533,7 +536,9 @@ if profile["role"] == "logistica":
         if not usuarios_aplicadores:
             st.info("Crea una cuenta con rol aplicador para habilitar las asignaciones.")
         if elegibles_campo and usuarios_aplicadores:
-            st.dataframe(elegibles_campo, use_container_width=True, hide_index=True)
+            record_cards(elegibles_campo, title_field="nombre_proyecto", detail_field="nombre_empresa")
+            with st.expander("Consultar asignaciones disponibles"):
+                st.dataframe(elegibles_campo, use_container_width=True, hide_index=True)
             opciones_trabajo = {
                 f"{c['nombre_empresa']} · {c['nombre_proyecto']} · {c['solicitud_id'][:8]}":
                     c["solicitud_id"]
@@ -600,7 +605,9 @@ if profile["role"] == "calidad":
         if not bandeja_calidad:
             st.info("No hay aplicaciones pendientes de evaluación.")
         else:
-            st.dataframe(bandeja_calidad, hide_index=True, use_container_width=True)
+            record_cards(bandeja_calidad, title_field="nombre_proyecto", detail_field="nombre_empresa")
+            with st.expander("Consultar tabla de inspecciones"):
+                st.dataframe(bandeja_calidad, hide_index=True, use_container_width=True)
             opciones_calidad = {
                 f"{r['nombre_empresa']} · {r['nombre_proyecto']} · "
                 f"{r['aplicacion_id'][:8]}": r["aplicacion_id"]
@@ -755,8 +762,13 @@ if profile["role"] == "aplicador":
     trabajos = call("GET", "/campo/aplicaciones") or []
     st.metric("Trabajos asignados", len(trabajos))
     if not trabajos:
-        st.info("Todavía no tienes trabajos asignados por logística.")
+        empty_state(
+            "Sin trabajos asignados",
+            "Los trabajos aparecerán cuando logística te asigne una solicitud despachada.",
+            icon="paintbrush",
+        )
     else:
+        record_cards(trabajos, title_field="nombre_proyecto", state_field="estado")
         opciones_trabajos = {
             f"{t['nombre_proyecto']} · {t['estado']} · {t['id'][:8]}": t["id"]
             for t in trabajos
@@ -943,7 +955,9 @@ if profile["role"] in {"asesor", "especialista_tecnico", "administrador"}:
         st.success("No hay solicitudes pendientes en la bandeja.")
     else:
         st.metric("Solicitudes por revisar", len(bandeja_asesor))
-        st.dataframe(bandeja_asesor, hide_index=True, use_container_width=True)
+        record_cards(bandeja_asesor, title_field="nombre_proyecto", detail_field="nombre_empresa")
+        with st.expander("Consultar tabla de revisión"):
+            st.dataframe(bandeja_asesor, hide_index=True, use_container_width=True)
         opciones_asesor = {
             f"{s['nombre_empresa']} · {s['nombre_proyecto']} · {s['solicitud_id'][:8]}":
                 s["solicitud_id"] for s in bandeja_asesor
@@ -1660,8 +1674,13 @@ if client_page == "Seguimiento logístico":
     )
     mis_ordenes = call("GET", "/logistica/ordenes") or []
     if not mis_ordenes:
-        st.info("No tienes órdenes logísticas registradas. El proceso empieza tras la aprobación.")
+        empty_state(
+            "Sin órdenes registradas",
+            "Las órdenes aparecerán cuando una solicitud tenga aprobación técnica.",
+            icon="truck",
+        )
     else:
+        record_cards(mis_ordenes, title_field="nombre_proyecto", state_field="estado")
         for mi_orden in mis_ordenes:
             with st.expander(
                 f"{mi_orden['nombre_proyecto']} · {mi_orden['estado']} · "
@@ -1702,6 +1721,7 @@ if client_page == "Aplicación en campo":
             "se registrará en esta sección cuando logística la realice."
         )
     else:
+        record_cards(mis_trabajos, title_field="nombre_proyecto", state_field="estado")
         for trabajo_cliente in mis_trabajos:
             with st.expander(
                 f"{trabajo_cliente['nombre_proyecto']} · "
@@ -1728,6 +1748,7 @@ if client_page == "Control de calidad":
     if not mis_expedientes_calidad:
         st.info("No hay aún un expediente de aplicación asociado a tus proyectos.")
     else:
+        record_cards(mis_expedientes_calidad, title_field="nombre_proyecto", state_field="estado_aplicacion")
         for e in mis_expedientes_calidad:
             with st.expander(
                 f"{e['nombre_proyecto']} · {e['estado_solicitud']} · "
