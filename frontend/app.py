@@ -8,6 +8,7 @@ from design import (
     PAGES, ROLE_PAGES, ROLE_LABELS,
     apply_design_system, brand, user_identity, page_hero,
     metric_cards, section_intro,
+    premium_welcome, premium_login_heading, workspace_header,
 )
 from process_ui import (
     render_request_panel, render_stage_explorer,
@@ -100,15 +101,12 @@ def mostrar_bitacora_campo(app):
 
 
 if not st.session_state.get("access_token"):
-    _, login_center, _ = st.columns([1, 1.5, 1])
+    showcase, login_center = st.columns([1.1, 1], gap="large")
+    with showcase:
+        premium_welcome()
     with login_center:
         brand(compact=True)
-        page_hero(
-            "ACCESO SEGURO",
-            "Bienvenido a COLORLINK",
-            "Gestiona tus proyectos, solicitudes y revisiones en un solo lugar.",
-            chip="GESTIÓN INTEGRAL",
-        )
+        premium_login_heading()
         entry, sign_up = st.tabs(["Iniciar sesión", "Crear cuenta"])
         with entry:
             st.caption("Ingresa con tu cuenta autorizada para continuar.")
@@ -274,6 +272,14 @@ with st.sidebar:
         st.session_state.pop("cl_page", None)
         st.rerun()
     st.caption("COLORLINK · Gestión integral de proyectos")
+
+active_location = (
+    client_page if profile["role"] == "cliente" else
+    logistics_page if profile["role"] == "logistica" else
+    quality_page if profile["role"] == "calidad" else
+    ROLE_PAGES.get(profile["role"], ("Plataforma", "Espacio de trabajo", ""))[1]
+)
+workspace_header(profile["role"], active_location)
 
 if profile["role"] == "cliente":
     page_meta = next(p for p in PAGES if p[0] == client_page)
