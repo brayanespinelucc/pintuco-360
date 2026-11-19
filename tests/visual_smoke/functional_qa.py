@@ -136,14 +136,11 @@ def test_evaluator(browser):
     login(page, "evaluador@qa.local")
     selector = page.get_by_role("combobox", name="Probar funcionalidades como")
     expect(selector).to_be_visible(timeout=20000)
-    # React-ARIA renders a separate "Open" button beside the selectbox text
-    # input. Clicking the input alone only focuses it; it does not open options.
-    page.locator(
-        '[data-testid="stSidebar"] [data-testid="stSelectbox"] '
-        'button[aria-label="Open"]'
-    ).click()
-    expect(selector).to_have_attribute("aria-expanded", "true")
-    page.get_by_role("option", name="Logística").click()
+    # React-ARIA Combobox supports typing to filter options. This exercises
+    # keyboard selection and avoids depending on transient popover structure.
+    selector.fill("Logística")
+    selector.press("ArrowDown")
+    selector.press("Enter")
     expect(page.get_by_role(
         "button", name="Cambiar al rol seleccionado"
     )).to_be_visible(timeout=15000)
@@ -153,12 +150,12 @@ def test_evaluator(browser):
     )
     assert matching("auth/evaluator/role")[-1]["role"] == "logistica"
     selector = page.get_by_role("combobox", name="Probar funcionalidades como")
-    page.locator(
-        '[data-testid="stSidebar"] [data-testid="stSelectbox"] '
-        'button[aria-label="Open"]'
-    ).click()
-    expect(selector).to_have_attribute("aria-expanded", "true")
-    page.get_by_role("option", name="Control de calidad").click()
+    selector.fill("Control de calidad")
+    selector.press("ArrowDown")
+    selector.press("Enter")
+    expect(page.get_by_role(
+        "button", name="Cambiar al rol seleccionado"
+    )).to_be_visible(timeout=15000)
     page.get_by_role("button", name="Cambiar al rol seleccionado").click()
     expect(page.locator(".cl-workspace-bar")).to_contain_text(
         "Control de calidad", timeout=25000
