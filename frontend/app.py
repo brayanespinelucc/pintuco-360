@@ -9,6 +9,11 @@ from design import (
     apply_design_system, brand, user_identity, page_hero,
     metric_cards, section_intro,
 )
+from process_ui import (
+    render_request_panel, render_stage_explorer,
+    render_state_distribution, render_stepper, render_field_progress,
+    request_state,
+)
 
 load_dotenv()
 API = os.getenv("API_BASE_URL", "http://localhost:8000").rstrip("/")
@@ -327,6 +332,7 @@ if profile["role"] == "logistica":
                 f"**Envases requeridos:** {actual_pendiente['envases_requeridos']} · "
                 f"**Disponibles ahora:** {actual_pendiente['disponibles_ahora']}"
             )
+            render_stepper(actual_pendiente.get("estado", "aprobada"), compact=True)
             if actual_pendiente["disponibles_ahora"] < actual_pendiente["envases_requeridos"]:
                 st.warning("No alcanza el stock actual. No se permitirá una reserva parcial.")
             with st.form("rf06_reservar"):
@@ -366,6 +372,7 @@ if profile["role"] == "logistica":
                 f"**Envases:** {orden['envases_requeridos']} · "
                 f"**Solicitud:** {orden['estado_solicitud']}"
             )
+            render_stepper(orden["estado_solicitud"], compact=True)
             if orden.get("referencia_despacho"):
                 st.write("**Referencia de despacho:**", orden["referencia_despacho"])
             if orden.get("lotes"):
@@ -653,8 +660,7 @@ if profile["role"] == "aplicador":
         )
         st.write("**Estado:**", trabajo["estado"])
         st.write("**Referencia de despacho:**", trabajo["referencia_despacho"])
-        st.metric("Avance registrado", f"{trabajo['avance_pct']} %")
-        st.progress(trabajo["avance_pct"] / 100)
+        render_field_progress(trabajo["avance_pct"])
         if trabajo["estado"] == "asignada":
             st.subheader("Iniciar actividad")
             with st.form("rf07_inicio"):
@@ -840,6 +846,7 @@ if profile["role"] in {"asesor", "especialista_tecnico", "administrador"}:
         if detalle_asesor:
             s = detalle_asesor["solicitud"]
             st.write(f"**Estado actual:** {s['estado']} · **Descripción:** {s['descripcion_libre']}")
+            render_stepper(s["estado"], compact=True)
             st.write("**Proyecto y condiciones**")
             st.json(detalle_asesor["proyecto"])
             st.write("**Último análisis de Gemini**")
@@ -1010,6 +1017,17 @@ if client_page == "Solicitudes":
             f"{s['id'][:8]} · {s['estado']} · {s['created_at'][:10]}": s["id"] for s in solicitudes
         }
         seleccionado = st.selectbox("Solicitud para adjuntar fotos", list(by_request))
+        selected_request = next(
+            row for row in solicitudes if row["id"] == by_request[seleccionado]
+        )
+        project_names = {p["id"]: p["nombre_proyecto"] for p in proyectos}
+        render_request_panel(
+            selected_request, project_names,
+            title="Expediente de solicitud", detail=True,
+        )
+        render_stage_explorer(
+            selected_request.get("estado"), key="cl_request_stage",
+        )
         fotos = st.file_uploader("Fotografías JPG o PNG (máximo 5 MB cada una)",
                                  type=["jpg", "jpeg", "png"], accept_multiple_files=True)
         if st.button("Adjuntar fotografías", type="primary"):
@@ -1041,6 +1059,61 @@ if client_page == "Mi panel":
         ("Proyectos", len(proyectos), "Proyectos vinculados", "folder-kanban"),
         ("Solicitudes", len(solicitudes), "Solicitudes radicadas", "files"),
     ])
+    section_intro(
+        "SEGUIMIENTO", "El recorrido de tus solicitudes",
+        "Consulta el estado real de cada expediente y la próxima sección de interés.",
+    )
+    render_state_distribution(solicitudes)
+    if solicitudes:
+        dashboard_project_names = {p["id"]: p["nombre_proyecto"] for p in proyectos}
+        dashboard_request_ids = {
+            f"#{row['id'][:8].upper()} · "
+            f"{dashboard_project_names.get(row.get('proyecto_id'), 'Proyecto')} · "
+            f"{request_state(row.get('estado'))[0]}": row["id"]
+            for row in solicitudes
+        }
+        dashboard_selected_label = st.selectbox(
+            "Solicitud a seguir", list(dashboard_request_ids),
+            key="cl_dashboard_request",
+        )
+        dashboard_selected_id = dashboard_request_ids[dashboard_selected_label]
+        dashboard_request = next(
+            row for row in solicitudes if row["id"] == dashboard_selected_id
+        )
+        render_request_panel(
+            dashboard_request, dashboard_project_names,
+            title="Detalle de seguimiento", detail=True,
+        )
+        render_stage_explorer(
+            dashboard_request.get("estado"), key="cl_dashboard_stage",
+        )
+        _, _, next_page, action_label = request_state(
+            dashboard_request.get("estado")
+        )
+        st.button(
+            action_label, type="primary",
+            use_container_width=True, key="cl_next_client_action",
+            on_click=lambda page=next_page: st.session_state.update(
+                {"cl_page": page}
+            ),
+        )
+    else:
+        st.info(
+            "Todavía no hay solicitudes. Registra una empresa, crea un proyecto "
+            "y radica tu primera solicitud para empezar su seguimiento."
+        )
+        if proyectos:
+            st.button(
+                "Crear primera solicitud", type="primary",
+                key="cl_create_first_request",
+                on_click=lambda: st.session_state.update({"cl_page": "Solicitudes"}),
+            )
+        else:
+            st.button(
+                "Comenzar con mi empresa", type="primary",
+                key="cl_create_first_company",
+                on_click=lambda: st.session_state.update({"cl_page": "Mi empresa"}),
+            )
     section_intro(
         "ACCESOS DIRECTOS", "¿Qué necesitas hacer?",
         "Continúa en el módulo correspondiente sin recorrer las demás secciones.",
@@ -1273,6 +1346,7 @@ if client_page == "Revisión técnica":
         if detalle:
             estado_actual = detalle["solicitud"]["estado"]
             st.write("**Estado actual:**", estado_actual)
+            render_stepper(estado_actual, compact=True)
             revisiones = detalle.get("revisiones") or []
             ultima_revision = revisiones[0] if revisiones else None
             pendiente = (
@@ -1374,6 +1448,7 @@ if client_page == "Seguimiento logístico":
                 expanded=(mi_orden == mis_ordenes[0]),
             ):
                 st.write("**Estado de logística:**", mi_orden["estado"])
+                render_stepper(mi_orden["estado_solicitud"], compact=True)
                 st.write("**Envases:**", mi_orden["envases_requeridos"])
                 if mi_orden.get("referencia_despacho"):
                     st.write(
@@ -1414,8 +1489,7 @@ if client_page == "Aplicación en campo":
                 st.write("**Aplicador:**", trabajo_cliente["aplicador"])
                 st.write("**Estado de campo:**", trabajo_cliente["estado"])
                 st.write("**Referencia de despacho:**", trabajo_cliente["referencia_despacho"])
-                st.metric("Avance", f"{trabajo_cliente['avance_pct']} %")
-                st.progress(trabajo_cliente["avance_pct"] / 100)
+                render_field_progress(trabajo_cliente["avance_pct"])
                 if trabajo_cliente["estado"] == "pendiente_calidad":
                     st.info("Aplicación finalizada; pendiente de revisión de calidad.")
                 mostrar_bitacora_campo(trabajo_cliente)
@@ -1440,6 +1514,7 @@ if client_page == "Control de calidad":
             ):
                 st.write("**Estado de calidad:**", e["estado_aplicacion"])
                 st.write("**Estado de la solicitud:**", e["estado_solicitud"])
+                render_stepper(e["estado_solicitud"], compact=True)
                 st.write("**Aplicador asignado:**", e["aplicador"])
                 if e["estado_aplicacion"] == "pendiente_calidad":
                     st.info("Caso pendiente de revisión por un inspector.")
