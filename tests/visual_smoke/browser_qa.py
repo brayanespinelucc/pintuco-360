@@ -161,8 +161,8 @@ def main() -> None:
             assert not sidebar_overlay, (
                 "El menú lateral debe estar plegado inicialmente en móviles"
             )
-            collapsed_control = mobile_user.locator(
-                '[data-testid="stSidebarCollapsedControl"]'
+            collapsed_control = mobile_user.get_by_role(
+                "button", name="Expand sidebar",
             )
             expect(collapsed_control).to_be_visible(timeout=10000)
             collapsed_control.click()
