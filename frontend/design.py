@@ -614,6 +614,80 @@ div.stFormSubmitButton > button[kind="primary"]:hover {
 .cl-auth-view [data-testid="stTabs"]{background:var(--cl-panel);padding:1rem 1.35rem 1.3rem;
  border:1px solid var(--cl-border);border-radius:19px;box-shadow:var(--cl-shadow);}
 .cl-auth-view [data-testid="stForm"]{box-shadow:none;border:none;padding:.7rem 0;background:transparent;}
+
+/* Shared content primitives — entity lists, cards, guided forms. */
+.cl-record-gallery-heading{
+ display:flex;justify-content:space-between;align-items:center;gap:.7rem;
+ margin:1.45rem 0 .8rem;flex-wrap:wrap;
+}
+.cl-record-gallery-heading strong{
+ color:var(--cl-heading);font:800 1rem/1.3 "Manrope",sans-serif;letter-spacing:-.025em;
+}
+.cl-record-gallery-heading span{font-size:.75rem;color:var(--cl-muted);}
+.cl-record-grid{
+ display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;
+ margin-bottom:1.1rem;
+}
+.cl-record-card{
+ min-height:174px;border:1px solid var(--cl-border);border-radius:18px;
+ background:var(--cl-panel);padding:1.25rem 1.35rem;
+ box-shadow:var(--cl-shadow);
+ transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease;
+ overflow:hidden;
+}
+.cl-record-card:hover{
+ transform:translateY(-2px);
+ border-color:color-mix(in srgb,var(--cl-primary) 42%,var(--cl-border));
+ box-shadow:0 14px 38px rgba(12,35,70,.085);
+}
+.cl-record-top{display:flex;justify-content:space-between;align-items:center;}
+.cl-record-monogram{
+ display:grid;place-items:center;
+ width:36px;height:36px;border-radius:12px;
+ background:var(--cl-primary-weak);color:var(--cl-primary);
+ font:800 1rem/1 "Manrope",sans-serif;
+}
+.cl-record-badge{
+ font-size:.66rem;font-weight:750;color:var(--cl-primary);
+ background:var(--cl-primary-weak);padding:.36rem .64rem;border-radius:100px;
+ max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.cl-record-card h3{
+ margin:.9rem 0 .25rem;font-size:.97rem!important;
+ line-height:1.38;letter-spacing:-.025em;
+ overflow-wrap:anywhere;
+}
+.cl-record-description{
+ font-size:.77rem;color:var(--cl-muted);line-height:1.45;margin:0 0 .6rem;
+ overflow-wrap:anywhere;
+}
+.cl-record-footer{
+ border-top:1px solid var(--cl-border);padding-top:.7rem;
+ margin-top:.85rem;display:flex;gap:1rem;flex-wrap:wrap;
+}
+.cl-record-meta{display:flex;flex-direction:column;gap:.15rem;font-size:.7rem;min-width:0;}
+.cl-record-meta small{font-size:.65rem;color:var(--cl-muted);}
+.cl-record-meta strong{font-size:.73rem;color:var(--cl-heading);overflow-wrap:anywhere;}
+.cl-record-more{font-size:.75rem;color:var(--cl-muted);}
+.cl-step-intro{
+ display:flex;align-items:center;gap:1rem;margin:1.25rem 0 1rem;
+ background:var(--cl-panel);border:1px solid var(--cl-border);
+ border-radius:17px;padding:1.05rem 1.25rem;
+}
+.cl-step-number{
+ flex-shrink:0;width:38px;height:38px;display:grid;place-items:center;
+ background:var(--cl-primary-weak);color:var(--cl-primary);
+ border-radius:12px;font:800 .85rem/1 "Manrope",sans-serif;
+}
+.cl-step-intro h3{font-size:.94rem!important;margin:0 0 .25rem;}
+.cl-step-intro p{font-size:.76rem;color:var(--cl-muted);margin:0;line-height:1.5;}
+@media(max-width:1050px){.cl-record-grid{grid-template-columns:repeat(2,minmax(0,1fr));}}
+@media(max-width:650px){
+ .cl-record-grid{grid-template-columns:1fr;}
+ .cl-record-card{min-height:0;}
+ .cl-step-intro{padding:.9rem;}
+}
+
 /* Reduced motion takes priority over decorative transitions. */
 @media(max-width:1000px){
  .cl-auth-showcase{min-height:420px;padding:2rem;}
