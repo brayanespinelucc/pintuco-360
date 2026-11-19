@@ -137,9 +137,18 @@ def test_evaluator(browser):
     selector = page.get_by_role("combobox", name="Probar funcionalidades como")
     expect(selector).to_be_visible(timeout=20000)
     selector.click()
-    # Streamlit's Selectbox popup exposes option *text*, but not consistently
-    # a role="option" element across React-ARIA releases.
+    print("EVALUATOR COMBOBOX POPUP DOM:", page.locator("body").evaluate(
+        "(el) => el.outerHTML.slice(-9000)"
+    ))
+    print("EVALUATOR COMBOBOX OPTIONS:", page.locator(
+        '[role="listbox"],[data-baseweb="popover"],[data-testid="stSelectbox"]'
+    ).all_text_contents())
+    # Streamlit's Selectbox popup exposes option text, but not always role=option.
     page.get_by_text("Logística", exact=True).last.click()
+    print("EVALUATOR POST-CLICK COMBOBOX:", selector.get_attribute("value"))
+    print("EVALUATOR SWITCH BUTTON COUNT:", page.get_by_role(
+        "button", name="Cambiar al rol seleccionado"
+    ).count())
     page.get_by_role("button", name="Cambiar al rol seleccionado").click()
     expect(page.locator(".cl-workspace-bar")).to_contain_text(
         "Logística", timeout=25000
