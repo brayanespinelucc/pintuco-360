@@ -32,8 +32,11 @@ def call(method, path, *, json=None, files=None, data=None):
         st.error("No hay conexión con el backend FastAPI.")
         return None
     if response.status_code == 401:
-        st.session_state.pop("access_token", None)
-        st.error("Tu sesión expiró. Ingresa nuevamente.")
+        if path == "/auth/login":
+            st.error("No fue posible iniciar sesión. Revisa el correo y la contraseña.")
+        else:
+            st.session_state.pop("access_token", None)
+            st.error("Tu sesión expiró. Ingresa nuevamente.")
         return None
     if response.is_error:
         try:
@@ -110,16 +113,23 @@ if not st.session_state.get("access_token"):
                 "Ingresar a mi espacio", type="primary", use_container_width=True
             )
         if submitted:
+            # Solo registra el evento; nunca imprime correo, contraseña ni tokens.
+            print("COLORLINK_UI_LOGIN_SUBMIT: formulario enviado", flush=True)
             if not email.strip() or not password:
                 st.warning("Completa el correo y la contraseña.")
             else:
-                result = call(
-                    "POST", "/auth/login",
-                    json={"email": email.strip(), "password": password},
-                )
+                with st.spinner("Validando acceso..."):
+                    result = call(
+                        "POST", "/auth/login",
+                        json={"email": email.strip(), "password": password},
+                    )
                 if result and result.get("access_token"):
                     st.session_state["access_token"] = result["access_token"]
                     st.rerun()
+                elif result is None:
+                    st.caption(
+                        "Si el problema continúa, comunícalo al administrador de COLORLINK."
+                    )
     st.stop()
 
 profile = call("GET", "/auth/me")
