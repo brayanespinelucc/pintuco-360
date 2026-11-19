@@ -51,7 +51,7 @@ def api(monkeypatch):
             "/calidad/bandeja", "/calidad/expedientes",
             "/revision/bandeja",
         }:
-            response_data = []
+            response_data = active_role.get(path, [])
         else:
             # The tests check rendering with no data; no application mutation is allowed.
             if method == "POST" and path == "/auth/login":
@@ -249,3 +249,50 @@ def test_normal_user_does_not_have_any_role_changer(api):
     app = _open_app()
     assert not any(x.label == "Probar funcionalidades como" for x in app.selectbox)
     assert not any(x.label == "Cambiar al rol seleccionado" for x in app.button)
+
+
+
+def test_dashboard_tracks_real_request_status_and_routes_next_action(api):
+    """The user navigates to an existing module, without any new business writes."""
+    seen, data = api
+    rid = "e2b6a0cf-68f1-45e2-bfa8-281100a76ce0"
+    pid = "97a55794-29e8-45f0-b9cc-529a7b9fd753"
+    data["/capture/solicitudes"] = [{
+        "id": rid, "proyecto_id": pid, "created_at": "2026-11-01T18:20:00Z",
+        "updated_at": "2026-11-18T20:00:00Z",
+        "estado": "pendiente_informacion", "descripcion_libre": "Faltan detalles de la superficie.",
+    }]
+    data["/capture/proyectos"] = [{
+        "id": pid, "nombre_proyecto": "Proyecto Norte"
+    }]
+    app = _open_app()
+    assert not app.exception
+    assert any(x.label == "Solicitud a seguir" for x in app.selectbox)
+    action = next(x for x in app.button if x.label == "Responder al especialista")
+    seen.clear()
+    action.click().run()
+    assert not app.exception
+    assert app.radio[0].value == "Revisión técnica"
+    assert not any(method == "POST" for method, _ in seen)
+
+
+def test_request_details_keep_original_upload_action_and_status_navigation(api):
+    seen, data = api
+    rid = "73b61241-00f4-4cb8-89bc-58a9b54820d4"
+    pid = "833f6021-bc80-4ef5-9962-e80f514ece85"
+    data["/capture/solicitudes"] = [{
+        "id": rid, "proyecto_id": pid,
+        "estado": "en_analisis", "created_at": "2026-11-10T12:30:00Z",
+        "descripcion_libre": "Solicitud de revestimiento, aplicación exterior."
+    }]
+    data["/capture/proyectos"] = [{
+        "id": pid, "nombre_proyecto": "Fachada norte"
+    }]
+    app = _open_app()
+    seen.clear()
+    app.radio[0].set_value("Solicitudes").run()
+    assert not app.exception
+    assert any(x.label == "Solicitud para adjuntar fotos" for x in app.selectbox)
+    assert any(x.label == "Adjuntar fotografías" for x in app.button)
+    assert ("GET", "/capture/solicitudes") in seen
+    assert not any(method == "POST" for method, _ in seen)
