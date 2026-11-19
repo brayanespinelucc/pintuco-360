@@ -7,7 +7,9 @@ from dotenv import load_dotenv
 from design import (
     PAGES, ROLE_PAGES, ROLE_LABELS,
     apply_design_system, brand, user_identity, page_hero,
-    metric_cards, section_intro,
+    metric_cards, section_intro, navigation_group, workspace_breadcrumb,
+    auth_showcase, auth_form_heading, auth_security_note, module_flag,
+    record_cards, empty_state, journey_hint,
 )
 from process_ui import (
     render_request_panel, render_stage_explorer,
@@ -100,15 +102,13 @@ def mostrar_bitacora_campo(app):
 
 
 if not st.session_state.get("access_token"):
-    _, login_center, _ = st.columns([1, 1.5, 1])
+    showcase, login_center = st.columns(
+        [1.1, 0.9], gap="large", vertical_alignment="center"
+    )
+    with showcase:
+        auth_showcase()
     with login_center:
-        brand(compact=True)
-        page_hero(
-            "ACCESO SEGURO",
-            "Bienvenido a COLORLINK",
-            "Gestiona tus proyectos, solicitudes y revisiones en un solo lugar.",
-            chip="GESTIÓN INTEGRAL",
-        )
+        auth_form_heading()
         entry, sign_up = st.tabs(["Iniciar sesión", "Crear cuenta"])
         with entry:
             st.caption("Ingresa con tu cuenta autorizada para continuar.")
@@ -185,6 +185,7 @@ if not st.session_state.get("access_token"):
                 "Las nuevas cuentas comienzan como Cliente. "
                 "El acceso al selector de roles requiere autorización del administrador."
             )
+        auth_security_note()
     st.stop()
 
 profile = call("GET", "/auth/me")
@@ -201,38 +202,65 @@ with st.sidebar:
         profile["role"],
     )
     if profile["role"] == "cliente":
-        st.markdown(
-            '<p class="cl-nav-label">Tu espacio de trabajo</p>',
-            unsafe_allow_html=True,
+        # Navigation is a grouped command menu; st.session_state remains the
+        # sole source for client_page so existing quick links still work.
+        allowed_client_pages = {page[0] for page in PAGES}
+        if st.session_state.get("cl_page") not in allowed_client_pages:
+            st.session_state["cl_page"] = "Mi panel"
+        client_page = st.session_state["cl_page"]
+        menu_groups = (
+            ("GENERAL", ("Mi panel", "Mi empresa", "Proyectos")),
+            ("SOLICITUDES", ("Solicitudes", "Análisis con Gemini", "Cálculo técnico", "Inventario")),
+            ("SEGUIMIENTO", (
+                "Revisión técnica", "Seguimiento logístico",
+                "Aplicación en campo", "Control de calidad",
+            )),
         )
-        client_page = st.radio(
-            "Navegación principal",
-            [p[0] for p in PAGES],
-            key="cl_page",
-            label_visibility="collapsed",
-        )
+        for label, pages in menu_groups:
+            navigation_group(label)
+            for page in pages:
+                st.button(
+                    page,
+                    key=f"cl_nav_{next(i for i,p in enumerate(PAGES) if p[0] == page)}",
+                    type="primary" if client_page == page else "secondary",
+                    use_container_width=True,
+                    on_click=lambda chosen=page: st.session_state.update(
+                        {"cl_page": chosen}
+                    ),
+                )
     elif profile["role"] == "logistica":
-        st.markdown(
-            '<p class="cl-nav-label">Centro de operaciones</p>',
-            unsafe_allow_html=True,
-        )
-        logistics_page = st.radio(
-            "Navegación de operaciones",
-            ["Reservas", "Órdenes y despachos", "Aplicadores y campo"],
-            key="cl_logistics_page",
-            label_visibility="collapsed",
-        )
+        logistic_pages = ("Reservas", "Órdenes y despachos", "Aplicadores y campo")
+        if st.session_state.get("cl_logistics_page") not in logistic_pages:
+            st.session_state["cl_logistics_page"] = logistic_pages[0]
+        logistics_page = st.session_state["cl_logistics_page"]
+        navigation_group("CENTRO DE OPERACIONES")
+        for i, page in enumerate(logistic_pages):
+            st.button(
+                page, key=f"cl_log_nav_{i}",
+                type="primary" if logistics_page == page else "secondary",
+                use_container_width=True,
+                on_click=lambda chosen=page: st.session_state.update(
+                    {"cl_logistics_page": chosen}
+                ),
+            )
     elif profile["role"] == "calidad":
-        st.markdown(
-            '<p class="cl-nav-label">Centro de inspecciones</p>',
-            unsafe_allow_html=True,
-        )
-        quality_page = st.radio(
-            "Navegación de calidad",
-            ["Inspecciones pendientes", "Historial de dictámenes"],
-            key="cl_quality_page",
-            label_visibility="collapsed",
-        )
+        quality_pages = ("Inspecciones pendientes", "Historial de dictámenes")
+        if st.session_state.get("cl_quality_page") not in quality_pages:
+            st.session_state["cl_quality_page"] = quality_pages[0]
+        quality_page = st.session_state["cl_quality_page"]
+        navigation_group("CENTRO DE INSPECCIONES")
+        for i, page in enumerate(quality_pages):
+            st.button(
+                page, key=f"cl_quality_nav_{i}",
+                type="primary" if quality_page == page else "secondary",
+                use_container_width=True,
+                on_click=lambda chosen=page: st.session_state.update(
+                    {"cl_quality_page": chosen}
+                ),
+            )
+    else:
+        navigation_group("TU ESPACIO")
+        st.caption("Las herramientas de esta cuenta se muestran en la vista principal.")
     if profile.get("can_switch_roles"):
         st.divider()
         st.markdown(
@@ -275,6 +303,16 @@ with st.sidebar:
         st.rerun()
     st.caption("COLORLINK · Gestión integral de proyectos")
 
+workspace_page = (
+    client_page if profile["role"] == "cliente" else
+    logistics_page if profile["role"] == "logistica" else
+    quality_page if profile["role"] == "calidad" else
+    ROLE_PAGES.get(profile["role"], ("", "Espacio de trabajo", ""))[1]
+)
+workspace_breadcrumb(
+    ROLE_LABELS.get(profile["role"], "COLORLINK"), workspace_page
+)
+
 if profile["role"] == "cliente":
     page_meta = next(p for p in PAGES if p[0] == client_page)
     page_hero(page_meta[1], page_meta[2], page_meta[3], chip="ESPACIO CLIENTE")
@@ -300,6 +338,61 @@ else:
         ("Plataforma", "Espacio de trabajo", "Herramientas disponibles para tu cuenta."),
     )
     page_hero(section, title, description, chip=ROLE_LABELS.get(profile["role"], "COLORLINK"))
+# Ayudas de navegación: solo presentación, nunca modifican estados de negocio.
+WORKSPACE_GUIDANCE = {
+    "Mi panel": ("VISTA GENERAL", "Encuentra lo importante", "Consulta tus expedientes y continúa desde el módulo que necesita atención."),
+    "Mi empresa": ("ORGANIZACIÓN", "Todo comienza con tu empresa", "Los datos de tu organización permiten vincular correctamente los proyectos."),
+    "Proyectos": ("PLANIFICACIÓN", "Define el contexto técnico", "Registra superficie, condiciones y requisitos antes de radicar una solicitud."),
+    "Solicitudes": ("CAPTURA", "Documenta tu necesidad", "Describe el trabajo, crea el expediente y añade fotografías cuando lo necesites."),
+    "Análisis con Gemini": ("INTELIGENCIA ASISTIDA", "Explora la clasificación de tu solicitud", "El análisis requiere consentimiento y no sustituye la revisión técnica humana."),
+    "Cálculo técnico": ("ESTIMACIÓN", "Calcula las cantidades requeridas", "Consulta resultados trazables a partir de parámetros y rendimientos registrados."),
+    "Inventario": ("DISPONIBILIDAD", "Consulta las existencias", "La evaluación propone lotes; no realiza una reserva de materiales."),
+    "Revisión técnica": ("APROBACIONES", "Atiende las observaciones", "Responde las solicitudes de información desde el mismo expediente."),
+    "Seguimiento logístico": ("SUMINISTRO", "Sigue reservas y despachos", "Consulta las órdenes relacionadas con tus solicitudes aprobadas."),
+    "Aplicación en campo": ("EJECUCIÓN", "Sigue el trabajo de campo", "Consulta avances, evidencias e incidencias de la aplicación."),
+    "Control de calidad": ("VALIDACIÓN", "Consulta las inspecciones", "Revisa los dictámenes y el historial de control de calidad."),
+}
+if profile["role"] == "cliente":
+    journey_hint(*WORKSPACE_GUIDANCE[client_page])
+elif profile["role"] == "logistica":
+    operational_context = {
+        "Reservas": (
+            "SUMINISTRO", "Asegura los materiales",
+            "Gestiona reservas únicamente sobre solicitudes aprobadas y con disponibilidad suficiente.",
+        ),
+        "Órdenes y despachos": (
+            "OPERACIONES", "De la reserva al despacho",
+            "Prepara, despacha o cancela según el estado actual de la orden.",
+        ),
+        "Aplicadores y campo": (
+            "COORDINACIÓN", "Asigna y sigue trabajos",
+            "Vincula un aplicador a las solicitudes despachadas y consulta el avance de campo.",
+        ),
+    }
+    journey_hint(*operational_context[logistics_page])
+elif profile["role"] == "calidad":
+    inspection_context = {
+        "Inspecciones pendientes": (
+            "INSPECCIÓN", "Revisa antes de decidir",
+            "Evalúa evidencias y confirma los criterios antes de registrar el dictamen.",
+        ),
+        "Historial de dictámenes": (
+            "TRAZABILIDAD", "Consulta la historia completa",
+            "Revisa inspecciones anteriores sin modificar sus decisiones.",
+        ),
+    }
+    journey_hint(*inspection_context[quality_page])
+elif profile["role"] == "aplicador":
+    journey_hint(
+        "TRABAJO EN CAMPO", "Registra cada avance",
+        "Inicia el trabajo asignado, documenta actividades y envía a calidad cuando corresponda.",
+    )
+elif profile["role"] in {"asesor", "especialista_tecnico", "administrador"}:
+    journey_hint(
+        "REVISIÓN", "Decide con información completa",
+        "Consulta los antecedentes del expediente y registra observaciones justificadas.",
+    )
+
 if profile["role"] == "logistica":
     st.subheader("Gestión logística")
     st.caption("Gestiona reservas, órdenes y trazabilidad de materiales.")
@@ -315,7 +408,9 @@ if profile["role"] == "logistica":
         st.metric("Pendientes de reserva", len(pendientes_logistica))
         st.subheader("Solicitudes aprobadas por reservar")
         if pendientes_logistica:
-            st.dataframe(pendientes_logistica, use_container_width=True, hide_index=True)
+            record_cards(pendientes_logistica, title_field="nombre_proyecto", detail_field="nombre_empresa")
+            with st.expander("Consultar solicitudes disponibles"):
+                st.dataframe(pendientes_logistica, use_container_width=True, hide_index=True)
             opciones_pendientes = {
                 f"{p['nombre_empresa']} · {p['nombre_proyecto']} · "
                 f"{p['envases_requeridos']} envases": p["solicitud_id"]
@@ -367,6 +462,7 @@ if profile["role"] == "logistica":
         m2.metric("Preparadas", estado_ordenes["preparada"])
         m3.metric("Despachadas", estado_ordenes["despachada"])
         if ordenes_activas:
+            record_cards(ordenes_activas, title_field="nombre_empresa", state_field="estado")
             etiquetas_ordenes = {
                 f"{o['nombre_empresa']} · {o['id'][:8]} · {o['estado']}": o["id"]
                 for o in ordenes_activas
@@ -440,7 +536,9 @@ if profile["role"] == "logistica":
         if not usuarios_aplicadores:
             st.info("Crea una cuenta con rol aplicador para habilitar las asignaciones.")
         if elegibles_campo and usuarios_aplicadores:
-            st.dataframe(elegibles_campo, use_container_width=True, hide_index=True)
+            record_cards(elegibles_campo, title_field="nombre_proyecto", detail_field="nombre_empresa")
+            with st.expander("Consultar asignaciones disponibles"):
+                st.dataframe(elegibles_campo, use_container_width=True, hide_index=True)
             opciones_trabajo = {
                 f"{c['nombre_empresa']} · {c['nombre_proyecto']} · {c['solicitud_id'][:8]}":
                     c["solicitud_id"]
@@ -507,7 +605,9 @@ if profile["role"] == "calidad":
         if not bandeja_calidad:
             st.info("No hay aplicaciones pendientes de evaluación.")
         else:
-            st.dataframe(bandeja_calidad, hide_index=True, use_container_width=True)
+            record_cards(bandeja_calidad, title_field="nombre_proyecto", detail_field="nombre_empresa")
+            with st.expander("Consultar tabla de inspecciones"):
+                st.dataframe(bandeja_calidad, hide_index=True, use_container_width=True)
             opciones_calidad = {
                 f"{r['nombre_empresa']} · {r['nombre_proyecto']} · "
                 f"{r['aplicacion_id'][:8]}": r["aplicacion_id"]
@@ -662,8 +762,13 @@ if profile["role"] == "aplicador":
     trabajos = call("GET", "/campo/aplicaciones") or []
     st.metric("Trabajos asignados", len(trabajos))
     if not trabajos:
-        st.info("Todavía no tienes trabajos asignados por logística.")
+        empty_state(
+            "Sin trabajos asignados",
+            "Los trabajos aparecerán cuando logística te asigne una solicitud despachada.",
+            icon="paintbrush",
+        )
     else:
+        record_cards(trabajos, title_field="nombre_proyecto", state_field="estado")
         opciones_trabajos = {
             f"{t['nombre_proyecto']} · {t['estado']} · {t['id'][:8]}": t["id"]
             for t in trabajos
@@ -850,7 +955,9 @@ if profile["role"] in {"asesor", "especialista_tecnico", "administrador"}:
         st.success("No hay solicitudes pendientes en la bandeja.")
     else:
         st.metric("Solicitudes por revisar", len(bandeja_asesor))
-        st.dataframe(bandeja_asesor, hide_index=True, use_container_width=True)
+        record_cards(bandeja_asesor, title_field="nombre_proyecto", detail_field="nombre_empresa")
+        with st.expander("Consultar tabla de revisión"):
+            st.dataframe(bandeja_asesor, hide_index=True, use_container_width=True)
         opciones_asesor = {
             f"{s['nombre_empresa']} · {s['nombre_proyecto']} · {s['solicitud_id'][:8]}":
                 s["solicitud_id"] for s in bandeja_asesor
@@ -964,109 +1071,214 @@ if profile["role"] != "cliente":
 # Los formularios, claves y llamadas originales permanecen intactos.
 
 if client_page == "Mi empresa":
-    section_intro("PERFIL", "Tus empresas", "Crea y consulta organizaciones vinculadas a tu cuenta.")
-    with st.form("crear_cliente"):
-        nombre = st.text_input("Nombre de la empresa", max_chars=160)
-        ciudad = st.text_input("Ciudad", max_chars=100)
-        save_cliente = st.form_submit_button("Guardar empresa", type="primary")
-    if save_cliente and nombre.strip() and ciudad.strip():
-        if call("POST", "/capture/clientes", json={"nombre_empresa":nombre.strip(),"ciudad":ciudad.strip()}):
-            st.success("Empresa registrada.")
-            st.rerun()
+    section_intro(
+        "ORGANIZACIÓN", "Tu espacio empresarial",
+        "Registra tu organización y mantén su información disponible para tus proyectos.",
+    )
     clientes = call("GET", "/capture/clientes") or []
-    if clientes:
-        st.dataframe(clientes, use_container_width=True, hide_index=True)
-    else:
-        st.info("Primero registra tu empresa para crear proyectos.")
+    form_col, summary_col = st.columns([0.95, 1.05], gap="large")
+    with form_col:
+        module_flag("01 · DATOS PRINCIPALES", "Información de la empresa")
+        with st.form("crear_cliente"):
+            nombre = st.text_input("Nombre de la empresa", max_chars=160)
+            ciudad = st.text_input("Ciudad", max_chars=100)
+            save_cliente = st.form_submit_button(
+                "Guardar empresa", type="primary", use_container_width=True
+            )
+        if save_cliente and nombre.strip() and ciudad.strip():
+            if call(
+                "POST", "/capture/clientes",
+                json={"nombre_empresa": nombre.strip(), "ciudad": ciudad.strip()},
+            ):
+                st.success("Empresa registrada.")
+                st.rerun()
+    with summary_col:
+        module_flag("02 · TU DIRECTORIO", f"{len(clientes)} organizaciones registradas")
+        if clientes:
+            record_cards(
+                clientes, title_field="nombre_empresa",
+                detail_field="ciudad", limit=3,
+            )
+            with st.expander("Consultar directorio completo", expanded=True):
+                st.dataframe(clientes, use_container_width=True, hide_index=True)
+        else:
+            empty_state(
+                "Tu primera organización",
+                "Registra tu empresa para poder crear y organizar sus proyectos.",
+                icon="building-2",
+            )
+
 
 if client_page == "Proyectos":
-    section_intro("PLANIFICACIÓN", "Proyectos", "Organiza nuevos proyectos y consulta sus condiciones registradas.")
+    section_intro(
+        "PLANIFICACIÓN", "Diseña tu siguiente proyecto",
+        "Registra condiciones, superficie y requisitos; luego consulta los proyectos creados.",
+    )
     clientes = call("GET", "/capture/clientes") or []
     proyectos = call("GET", "/capture/proyectos") or []
-    if clientes:
-        by_name = {f"{c['nombre_empresa']} · {c['ciudad']}": c["id"] for c in clientes}
-        with st.form("crear_proyecto"):
-            empresa = st.selectbox("Empresa", list(by_name))
-            nombre = st.text_input("Nombre del proyecto", max_chars=180)
-            area = st.number_input("Área (m²)", min_value=0.01, value=85.0, step=1.0)
-            superficie = st.text_input("Superficie", value="Concreto", max_chars=100)
-            condicion = st.text_input("Condición", value="Humedad y fisuras", max_chars=300)
-            ambiente = st.selectbox("Ambiente", ["exterior", "interior"])
-            color = st.text_input("Color requerido", value="Gris", max_chars=100)
-            fecha = st.date_input("Fecha requerida", value=date.today()+timedelta(days=20),
-                                  min_value=date.today())
-            save_project = st.form_submit_button("Crear proyecto", type="primary")
-        if save_project:
-            payload = {
-                "cliente_id": by_name[empresa], "nombre_proyecto": nombre.strip(),
-                "area_m2": f"{area:.2f}", "tipo_superficie": superficie.strip(),
-                "condicion": condicion.strip(), "ambiente": ambiente,
-                "color_requerido": color.strip(), "fecha_requerida": fecha.isoformat()
-            }
-            if call("POST", "/capture/proyectos", json=payload):
-                st.success("Proyecto guardado.")
-                st.rerun()
-    else:
-        st.info("Debes registrar una empresa antes de crear un proyecto.")
-    if proyectos:
-        st.dataframe(proyectos, use_container_width=True, hide_index=True)
+    entry_col, inventory_col = st.columns([1.02, 0.98], gap="large")
+    with entry_col:
+        module_flag("01 · CREAR PROYECTO", "Información y condiciones")
+        if clientes:
+            by_name = {f"{c['nombre_empresa']} · {c['ciudad']}": c["id"] for c in clientes}
+            with st.form("crear_proyecto"):
+                empresa = st.selectbox("Empresa", list(by_name))
+                nombre = st.text_input("Nombre del proyecto", max_chars=180)
+                area = st.number_input("Área (m²)", min_value=0.01, value=85.0, step=1.0)
+                superficie = st.text_input("Superficie", value="Concreto", max_chars=100)
+                condicion = st.text_input("Condición", value="Humedad y fisuras", max_chars=300)
+                ambiente = st.selectbox("Ambiente", ["exterior", "interior"])
+                color = st.text_input("Color requerido", value="Gris", max_chars=100)
+                fecha = st.date_input(
+                    "Fecha requerida",
+                    value=date.today() + timedelta(days=20),
+                    min_value=date.today(),
+                )
+                save_project = st.form_submit_button(
+                    "Crear proyecto", type="primary", use_container_width=True
+                )
+            if save_project:
+                payload = {
+                    "cliente_id": by_name[empresa], "nombre_proyecto": nombre.strip(),
+                    "area_m2": f"{area:.2f}", "tipo_superficie": superficie.strip(),
+                    "condicion": condicion.strip(), "ambiente": ambiente,
+                    "color_requerido": color.strip(), "fecha_requerida": fecha.isoformat(),
+                }
+                if call("POST", "/capture/proyectos", json=payload):
+                    st.success("Proyecto guardado.")
+                    st.rerun()
+        else:
+            empty_state(
+                "Primero registra tu empresa",
+                "La empresa es necesaria para asociar un proyecto a tu organización.",
+                icon="building-2",
+            )
+    with inventory_col:
+        module_flag("02 · PROYECTOS", f"{len(proyectos)} proyectos registrados")
+        if proyectos:
+            record_cards(
+                proyectos, title_field="nombre_proyecto",
+                detail_field="tipo_superficie", limit=3,
+            )
+            with st.expander("Explorar todos los proyectos", expanded=True):
+                st.dataframe(proyectos, use_container_width=True, hide_index=True)
+        else:
+            empty_state(
+                "Todavía no hay proyectos",
+                "Los proyectos que crees aparecerán aquí para su consulta.",
+                icon="folder-kanban",
+            )
+
 
 if client_page == "Solicitudes":
-    section_intro("CAPTURA", "Solicitudes y evidencias", "Radica necesidades y adjunta fotografías a tus solicitudes.")
+    section_intro(
+        "SOLICITUDES", "De la necesidad a la acción",
+        "Crea una solicitud o abre un expediente para añadir evidencias y revisar su evolución.",
+    )
     proyectos = call("GET", "/capture/proyectos") or []
     solicitudes = call("GET", "/capture/solicitudes") or []
-    if proyectos:
-        by_project = {f"{p['nombre_proyecto']} · {p['id'][:8]}":p["id"] for p in proyectos}
-        with st.form("crear_solicitud"):
-            seleccionado = st.selectbox("Proyecto", list(by_project))
-            descripcion = st.text_area(
-                "Descripción de la necesidad",
-                placeholder="Describe la superficie, condiciones y trabajo requerido...",
-                max_chars=4000,
+    create_tab, files_tab = st.tabs([
+        "Radicar nueva solicitud", "Expedientes y evidencias",
+    ])
+    with create_tab:
+        module_flag("01 · RADICACIÓN", "Describe el trabajo que necesitas")
+        if proyectos:
+            by_project = {
+                f"{p['nombre_proyecto']} · {p['id'][:8]}": p["id"]
+                for p in proyectos
+            }
+            with st.form("crear_solicitud"):
+                seleccionado = st.selectbox("Proyecto", list(by_project))
+                descripcion = st.text_area(
+                    "Descripción de la necesidad",
+                    placeholder="Describe la superficie, condiciones y trabajo requerido...",
+                    max_chars=4000,
+                )
+                save_request = st.form_submit_button(
+                    "Radicar solicitud", type="primary", use_container_width=True
+                )
+            if save_request:
+                if call(
+                    "POST", "/capture/solicitudes",
+                    json={
+                        "proyecto_id": by_project[seleccionado],
+                        "descripcion_libre": descripcion.strip(),
+                    },
+                ):
+                    st.success("Solicitud radicada correctamente.")
+                    st.rerun()
+        else:
+            empty_state(
+                "Necesitas un proyecto primero",
+                "Crea un proyecto antes de radicar la solicitud de materiales.",
+                icon="folder-kanban",
             )
-            save_request = st.form_submit_button("Radicar solicitud", type="primary")
-        if save_request:
-            if call("POST", "/capture/solicitudes",
-                    json={"proyecto_id":by_project[seleccionado], "descripcion_libre":descripcion.strip()}):
-                st.success("Solicitud radicada correctamente.")
-                st.rerun()
-    else:
-        st.info("Primero debes crear un proyecto.")
-    if solicitudes:
-        st.subheader("Solicitudes registradas")
-        st.dataframe(solicitudes, use_container_width=True, hide_index=True)
-        by_request = {
-            f"{s['id'][:8]} · {s['estado']} · {s['created_at'][:10]}": s["id"] for s in solicitudes
-        }
-        seleccionado = st.selectbox("Solicitud para adjuntar fotos", list(by_request))
-        selected_request = next(
-            row for row in solicitudes if row["id"] == by_request[seleccionado]
-        )
-        project_names = {p["id"]: p["nombre_proyecto"] for p in proyectos}
-        render_request_panel(
-            selected_request, project_names,
-            title="Expediente de solicitud", detail=True,
-        )
-        render_stage_explorer(
-            selected_request.get("estado"), key="cl_request_stage",
-        )
-        fotos = st.file_uploader("Fotografías JPG o PNG (máximo 5 MB cada una)",
-                                 type=["jpg", "jpeg", "png"], accept_multiple_files=True)
-        if st.button("Adjuntar fotografías", type="primary"):
-            if not fotos:
-                st.warning("Selecciona al menos una fotografía.")
-            else:
-                for foto in fotos:
-                    if foto.size > 5 * 1024 * 1024:
-                        st.error(f"{foto.name}: supera los 5 MB.")
-                        continue
-                    result = call("POST", f"/capture/solicitudes/{by_request[seleccionado]}/evidencias",
-                                  files={"archivo": (foto.name, foto.getvalue(), foto.type)})
-                    if result:
-                        st.success(f"Fotografía almacenada: {foto.name}")
-        evidencias = call("GET", f"/capture/solicitudes/{by_request[seleccionado]}/evidencias") or []
-        if evidencias:
-            st.dataframe(evidencias, use_container_width=True, hide_index=True)
+    with files_tab:
+        module_flag("02 · EXPEDIENTES", "Consulta y completa tus solicitudes")
+        if solicitudes:
+            record_cards(
+                solicitudes, title_field="id", state_field="estado", limit=3,
+            )
+            with st.expander("Tabla de solicitudes registradas"):
+                st.dataframe(solicitudes, use_container_width=True, hide_index=True)
+            by_request = {
+                f"{item['id'][:8]} · {item['estado']} · {item['created_at'][:10]}": item["id"]
+                for item in solicitudes
+            }
+            seleccionado = st.selectbox(
+                "Solicitud para adjuntar fotos", list(by_request)
+            )
+            selected_request = next(
+                row for row in solicitudes if row["id"] == by_request[seleccionado]
+            )
+            project_names = {
+                p["id"]: p["nombre_proyecto"] for p in proyectos
+            }
+            render_request_panel(
+                selected_request, project_names,
+                title="Expediente de solicitud", detail=True,
+            )
+            render_stage_explorer(
+                selected_request.get("estado"), key="cl_request_stage",
+            )
+            module_flag("03 · EVIDENCIAS", "Documenta la solicitud")
+            fotos = st.file_uploader(
+                "Fotografías JPG o PNG (máximo 5 MB cada una)",
+                type=["jpg", "jpeg", "png"], accept_multiple_files=True,
+            )
+            if st.button("Adjuntar fotografías", type="primary"):
+                if not fotos:
+                    st.warning("Selecciona al menos una fotografía.")
+                else:
+                    for foto in fotos:
+                        if foto.size > 5 * 1024 * 1024:
+                            st.error(f"{foto.name}: supera los 5 MB.")
+                            continue
+                        result = call(
+                            "POST",
+                            f"/capture/solicitudes/{by_request[seleccionado]}/evidencias",
+                            files={
+                                "archivo": (foto.name, foto.getvalue(), foto.type)
+                            },
+                        )
+                        if result:
+                            st.success(f"Fotografía almacenada: {foto.name}")
+            evidencias = call(
+                "GET",
+                f"/capture/solicitudes/{by_request[seleccionado]}/evidencias",
+            ) or []
+            if evidencias:
+                with st.expander("Fotografías registradas", expanded=True):
+                    st.dataframe(
+                        evidencias, use_container_width=True, hide_index=True
+                    )
+        else:
+            empty_state(
+                "Aún no hay solicitudes",
+                "Radica una solicitud en la primera pestaña para empezar su seguimiento.",
+                icon="files",
+            )
+
 
 if client_page == "Mi panel":
     section_intro(
@@ -1462,8 +1674,13 @@ if client_page == "Seguimiento logístico":
     )
     mis_ordenes = call("GET", "/logistica/ordenes") or []
     if not mis_ordenes:
-        st.info("No tienes órdenes logísticas registradas. El proceso empieza tras la aprobación.")
+        empty_state(
+            "Sin órdenes registradas",
+            "Las órdenes aparecerán cuando una solicitud tenga aprobación técnica.",
+            icon="truck",
+        )
     else:
+        record_cards(mis_ordenes, title_field="nombre_proyecto", state_field="estado")
         for mi_orden in mis_ordenes:
             with st.expander(
                 f"{mi_orden['nombre_proyecto']} · {mi_orden['estado']} · "
@@ -1504,6 +1721,7 @@ if client_page == "Aplicación en campo":
             "se registrará en esta sección cuando logística la realice."
         )
     else:
+        record_cards(mis_trabajos, title_field="nombre_proyecto", state_field="estado")
         for trabajo_cliente in mis_trabajos:
             with st.expander(
                 f"{trabajo_cliente['nombre_proyecto']} · "
@@ -1530,6 +1748,7 @@ if client_page == "Control de calidad":
     if not mis_expedientes_calidad:
         st.info("No hay aún un expediente de aplicación asociado a tus proyectos.")
     else:
+        record_cards(mis_expedientes_calidad, title_field="nombre_proyecto", state_field="estado_aplicacion")
         for e in mis_expedientes_calidad:
             with st.expander(
                 f"{e['nombre_proyecto']} · {e['estado_solicitud']} · "

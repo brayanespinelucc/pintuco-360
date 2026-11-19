@@ -6,6 +6,7 @@ Compatible with the existing Streamlit application and its native form controls.
 from __future__ import annotations
 
 from html import escape
+from pathlib import Path
 import streamlit as st
 
 
@@ -70,389 +71,61 @@ def icon_svg(name: str, size: int = 20) -> str:
 
 
 def apply_design_system(dark: bool = False) -> None:
-    """Render isolated CSS overrides for Streamlit, with a proper dark palette."""
+    """Load the single-source premium stylesheet without Markdown parsing."""
     marker = "cl-theme-dark" if dark else "cl-theme-light"
-    css = r"""
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&display=swap');
-[data-testid="stApp"] {
-  --cl-bg: #F5F7FB;
-  --cl-panel: #FFFFFF;
-  --cl-panel-soft: #F8FAFD;
-  --cl-text: #172238;
-  --cl-heading: #111D36;
-  --cl-muted: #64748B;
-  --cl-border: #E5EAF2;
-  --cl-primary: #2959D6;
-  --cl-primary-hover: #2149B4;
-  --cl-primary-weak: #EAF0FF;
-  --cl-turquoise: #0E948D;
-  --cl-success: #13845A;
-  --cl-shadow: 0 4px 22px rgba(20, 39, 83, .045), 0 1px 2px rgba(20, 39, 83, .025);
-  font-family: "DM Sans", system-ui, -apple-system, sans-serif;
-  color: var(--cl-text);
-}
-[data-testid="stApp"]:has(#cl-theme-dark) {
-  --cl-bg: #0A1221;
-  --cl-panel: #121D31;
-  --cl-panel-soft: #18253C;
-  --cl-text: #DAE4F3;
-  --cl-heading: #F1F5FD;
-  --cl-muted: #A7B5C9;
-  --cl-border: #2A3952;
-  --cl-primary: #80A4FF;
-  --cl-primary-hover: #9DB7FF;
-  --cl-primary-weak: #1B3151;
-  --cl-turquoise: #4EDFD1;
-  --cl-success: #60D8A2;
-  --cl-shadow: 0 8px 30px rgba(0,0,0,.16);
-}
-html, body, [data-testid="stApp"], [data-testid="stApp"] button, [data-testid="stApp"] input,
-[data-testid="stApp"] textarea, [data-testid="stApp"] select {
-  font-family: "DM Sans", system-ui, sans-serif;
-}
-[data-testid="stAppViewContainer"], [data-testid="stApp"] { background: var(--cl-bg); }
-[data-testid="stHeader"] { background: transparent; }
-[data-testid="stMainBlockContainer"] {
-  max-width: 1390px; padding-top: 1.35rem; padding-bottom: 4.5rem;
-  padding-left: clamp(1rem,3.4vw,3.3rem); padding-right: clamp(1rem,3.4vw,3.3rem);
-}
-[data-testid="stSidebar"] {
-  background: var(--cl-panel);
-  border-right: 1px solid var(--cl-border);
-}
-[data-testid="stSidebar"] > div:first-child { padding-top: .6rem; }
-[data-testid="stSidebar"] .stRadio > label p,
-[data-testid="stSidebar"] [data-testid="stWidgetLabel"] p { color: var(--cl-muted); }
-[data-testid="stSidebar"] div[role="radiogroup"] { gap: .16rem; }
-[data-testid="stSidebar"] div[role="radiogroup"] > label {
-  border-radius: 11px; padding: .57rem .67rem;
-  min-height: 39px; transition: background .16s ease, transform .16s ease;
-}
-[data-testid="stSidebar"] div[role="radiogroup"] > label:hover { background: var(--cl-panel-soft); }
-[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) {
-  background: var(--cl-primary-weak);
-}
-[data-testid="stSidebar"] div[role="radiogroup"] > label:has(input:checked) p {
-  color: var(--cl-primary); font-weight: 800;
-}
-[data-testid="stSidebar"] div[role="radiogroup"] > label p {
-  color: var(--cl-text); font-size: .875rem; font-weight: 600;
-}
-[data-testid="stSidebar"] .stDivider { margin-top: .8rem; margin-bottom: .65rem; }
-h1,h2,h3,h4,h5,h6,
-[data-testid="stHeadingWithActionElements"] * {
-  font-family: "Manrope","DM Sans",system-ui,sans-serif;
-  color: var(--cl-heading);
-  letter-spacing: -.025em;
-}
-h1 { font-size: clamp(1.65rem, 3vw, 2.25rem) !important; font-weight: 800 !important; }
-h2 { font-size: 1.5rem !important; font-weight: 800 !important; }
-h3 { font-size: 1.16rem !important; font-weight: 750 !important; }
-[data-testid="stCaptionContainer"] p, .stCaption p { color: var(--cl-muted); }
-[data-testid="stMarkdownContainer"] p, [data-testid="stMarkdownContainer"] li { line-height: 1.65; }
-[data-testid="stMarkdownContainer"] strong { color: var(--cl-heading); }
-[data-testid="stForm"] {
-  border: 1px solid var(--cl-border); background: var(--cl-panel);
-  border-radius: 18px; padding: clamp(1rem,2vw,1.55rem);
-  box-shadow: var(--cl-shadow);
-}
-[data-testid="stVerticalBlockBorderWrapper"] > div:has(> [data-testid="stVerticalBlock"]) {
-  border-radius: 16px;
-}
-[data-testid="stMetric"] {
-  background: var(--cl-panel); border: 1px solid var(--cl-border);
-  border-radius: 16px; padding: 1rem 1.2rem; box-shadow: var(--cl-shadow);
-}
-[data-testid="stMetricValue"] { color: var(--cl-heading); font-weight: 800; }
-[data-testid="stMetricLabel"] { color: var(--cl-muted); font-weight: 600; }
-[data-testid="stDataFrame"] {
-  border: 1px solid var(--cl-border); border-radius: 14px;
-  overflow: hidden; background: var(--cl-panel);
-}
-[data-testid="stExpander"] {
-  background: var(--cl-panel); border: 1px solid var(--cl-border);
-  border-radius: 14px; overflow: hidden;
-}
-[data-testid="stExpander"] details { border: 0; }
-[data-testid="stExpander"] summary:hover { background: var(--cl-panel-soft); }
-[data-testid="stFileUploader"] {
-  background: var(--cl-panel-soft); border-radius: 14px;
-}
-[data-testid="stTextInput"] input,
-[data-testid="stTextArea"] textarea,
-[data-testid="stNumberInput"] input,
-[data-testid="stSelectbox"] [data-baseweb="select"] > div,
-[data-testid="stDateInput"] input {
-  border-radius: 11px !important;
-  background: var(--cl-panel) !important; color: var(--cl-text) !important;
-  border-color: var(--cl-border) !important;
-}
-[data-testid="stWidgetLabel"] p { color: var(--cl-text); font-weight: 650; }
-div.stButton > button, div.stFormSubmitButton > button {
-  border-radius: 11px; min-height: 2.6rem; font-weight: 750;
-  transition: box-shadow .16s ease, transform .16s ease, background .16s ease;
-  border-color: var(--cl-border);
-  background: var(--cl-panel); color: var(--cl-text);
-}
-div.stButton > button:hover, div.stFormSubmitButton > button:hover {
-  border-color: var(--cl-primary); color: var(--cl-primary);
-  box-shadow: 0 6px 14px rgba(38,91,196,.11); transform: translateY(-1px);
-}
-div.stButton > button[kind="primary"],
-div.stFormSubmitButton > button[kind="primary"] {
-  background: #2959D6; color: #fff; border-color: #2959D6;
-  box-shadow: 0 3px 9px rgba(41,89,214,.15);
-}
-div.stButton > button[kind="primary"]:hover,
-div.stFormSubmitButton > button[kind="primary"]:hover {
-  background: #2149B4; border-color: #2149B4; color: #fff;
-}
-div.stButton > button:disabled,
-div.stFormSubmitButton > button:disabled { opacity: .5; transform: none; box-shadow: none; }
-button:focus-visible, input:focus-visible, textarea:focus-visible,
-[role="radio"]:focus-visible, [tabindex]:focus-visible {
-  outline: 3px solid var(--cl-turquoise) !important; outline-offset: 3px !important;
-}
-[data-testid="stAlert"] { border-radius: 13px; }
-[data-testid="stProgressBar"] > div > div { background: #16A5A1 !important; }
-hr { border-color: var(--cl-border); }
-.cl-brand {
-  display: flex; gap: .72rem; align-items: center; margin: .35rem 0 1.1rem;
-}
-.cl-mark {
-  width: 37px; height: 37px; display: grid; place-items: center;
-  border-radius: 11px; background: linear-gradient(135deg,#255AD7,#0DA7A0);
-  color: white; flex-shrink: 0; box-shadow: 0 6px 12px rgba(37,90,215,.14);
-}
-.cl-brand-title { color: var(--cl-heading); font: 800 1.12rem/1.2 "Manrope",sans-serif; letter-spacing: -.04em; }
-.cl-brand-sub { display: block; color: var(--cl-muted); font-size: .68rem; font-weight: 750; letter-spacing: .12em; margin-top: 2px; }
-.cl-user-card { border-radius: 13px; background: var(--cl-panel-soft);
-  border: 1px solid var(--cl-border); padding: .85rem .9rem; margin: 0 0 1.2rem; }
-.cl-user-name { color: var(--cl-heading); font-weight: 800; font-size: .88rem; overflow-wrap: anywhere; }
-.cl-user-role { color: var(--cl-muted); font-size: .76rem; padding-top: .2rem; font-weight: 600; }
-.cl-nav-label { color: var(--cl-muted); font-size: .68rem; text-transform: uppercase;
-  letter-spacing: .17em; font-weight: 800; margin: .3rem 0 .6rem; }
-.cl-hero {
-  position: relative; overflow: hidden;
-  background: linear-gradient(112deg,#172A50 0%,#213D70 58%,#176C81 100%);
-  border-radius: 22px; padding: clamp(1.25rem,3vw,2.15rem) clamp(1.25rem,3vw,2.4rem);
-  margin: .65rem 0 1.45rem; isolation: isolate;
-  box-shadow: 0 11px 25px rgba(14,34,72,.1); min-height: 142px;
-}
-.cl-hero::before, .cl-hero::after { content: ""; position: absolute; z-index: -1;
-  border: 1px solid rgba(255,255,255,.17); border-radius: 50%; }
-.cl-hero::before { width: 270px; height: 270px; right: -50px; top: -170px; }
-.cl-hero::after { width: 190px; height: 190px; right: 100px; bottom: -175px; }
-.cl-hero-kicker {
-  color: #A4E9E4; font-size: .69rem; letter-spacing: .18em;
-  text-transform: uppercase; font-weight: 800; margin: 0 0 .55rem;
-}
-.cl-hero-title {
-  color: #FFF !important; font: 800 clamp(1.55rem,3vw,2.25rem)/1.2 "Manrope",sans-serif !important;
-  letter-spacing: -.035em; margin: 0 0 .65rem; max-width: 750px;
-}
-.cl-hero-desc { color: #DDEAF9; line-height: 1.62; font-size: .9rem; max-width: 700px; margin: 0; }
-.cl-hero-chip { position: absolute; top: 1.3rem; right: 1.4rem; padding: .32rem .72rem;
-  background: rgba(255,255,255,.12); border: 1px solid rgba(255,255,255,.2);
-  color: #fff; border-radius: 30px; font-size: .7rem; font-weight: 700;
-  backdrop-filter: blur(8px); }
-.cl-metric-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr));
-  gap: 1rem; margin: .6rem 0 1.5rem; }
-.cl-metric-card { background: var(--cl-panel); border:1px solid var(--cl-border);
-  border-radius:17px; padding: 1.25rem 1.3rem; box-shadow:var(--cl-shadow); }
-.cl-metric-head { display:flex; align-items:center; gap:.65rem; color:var(--cl-muted);
-  font-size: .8rem; font-weight:700; }
-.cl-metric-icon { display:grid; place-items:center; height:34px; width:34px;
-  background:var(--cl-primary-weak); color:var(--cl-primary); border-radius:10px; }
-.cl-metric-value { color:var(--cl-heading); font:800 2rem/1.25 "Manrope",sans-serif;
-  letter-spacing:-.05em; margin:.62rem 0 .2rem; }
-.cl-metric-foot { color:var(--cl-muted); font-size:.73rem; }
-.cl-section-eyebrow { text-transform: uppercase; font-size: .7rem; font-weight: 800;
-  letter-spacing: .15em; color: var(--cl-turquoise); }
-.cl-section-head { margin:1.45rem 0 .4rem; color:var(--cl-heading);
-  font:800 1.2rem/1.3 "Manrope",sans-serif; letter-spacing:-.03em; }
-.cl-section-text { color:var(--cl-muted); font-size:.84rem; margin:0 0 1rem; }
-.cl-login-mark { display:flex; justify-content:center; margin: 1.5rem auto .7rem; }
-.cl-login-intro { color: var(--cl-muted); text-align:center; margin:0 auto 1.5rem;
- max-width: 32rem; font-size:.94rem; line-height:1.65; }
-.cl-footnote { font-size: .72rem; color:var(--cl-muted); line-height:1.6; margin-top:1rem; }
-[data-testid="stApp"]:has(#cl-theme-dark) .cl-hero {
- background:linear-gradient(115deg,#20345A,#1B3856 70%,#15494E); box-shadow:0 13px 30px rgba(0,0,0,.18);
-}
-[data-testid="stApp"]:has(#cl-theme-dark) [data-testid="stDataFrame"] {
- filter: brightness(.91);
-}
-
-
-.cl-event-timeline {
-  list-style:none; margin:.8rem 0 1.35rem; padding:0 0 0 .7rem;
-  border-left:2px solid var(--cl-border);
-}
-.cl-event-item { position:relative; padding:0 0 1rem 1.35rem; }
-.cl-event-item:last-child { padding-bottom:0; }
-.cl-event-dot {
-  position:absolute; left:-.43rem; top:.32rem; height:.72rem; width:.72rem;
-  background:var(--cl-turquoise); border-radius:50%;
-  border:3px solid var(--cl-panel); box-shadow:0 0 0 2px var(--cl-border);
-}
-.cl-event-body { padding:.1rem 0 .2rem; }
-.cl-event-head {
-  display:flex; align-items:baseline; justify-content:space-between;
-  gap:.65rem; flex-wrap:wrap;
-}
-.cl-event-head strong { color:var(--cl-heading); font-size:.88rem; font-weight:800; }
-.cl-event-head time { color:var(--cl-muted); font-size:.72rem; }
-.cl-event-body p {
-  color:var(--cl-text); font-size:.8rem; line-height:1.55;
-  margin:.4rem 0 0; white-space:pre-wrap; overflow-wrap:anywhere;
-}
-
-/* Process-first components: passive HTML, native Streamlit for all actions. */
-.cl-process-summary {
-  border:1px solid var(--cl-border); background:var(--cl-panel);
-  box-shadow:var(--cl-shadow); border-radius:20px; padding:1.35rem 1.5rem;
-  margin:.6rem 0 1rem; position:relative; overflow:hidden;
-}
-.cl-process-summary::before {
-  content:""; position:absolute; left:0; top:0; bottom:0; width:4px;
-  background:linear-gradient(180deg,var(--cl-primary),var(--cl-turquoise));
-}
-.cl-process-summary-top {
-  display:flex; align-items:flex-start; justify-content:space-between;
-  gap:1rem; flex-wrap:wrap;
-}
-.cl-process-eyebrow {
-  color:var(--cl-turquoise); font-size:.69rem; font-weight:800;
-  text-transform:uppercase; letter-spacing:.13em; margin:0 0 .35rem;
-}
-.cl-process-summary-title {
-  color:var(--cl-heading); font:800 1.25rem/1.35 "Manrope",sans-serif;
-  margin:0 0 .25rem;
-}
-.cl-process-summary-meta {
-  font-size:.76rem; color:var(--cl-muted); margin:0;
-  overflow-wrap:anywhere;
-}
-.cl-process-hint {
-  font-size:.875rem; color:var(--cl-text); line-height:1.6; margin:.95rem 0 0;
-}
-.cl-status-pill {
-  display:inline-flex; align-items:center; flex-shrink:0;
-  font-size:.74rem; font-weight:800; border-radius:99px;
-  padding:.4rem .75rem; border:1px solid var(--cl-border);
-  background:var(--cl-primary-weak); color:var(--cl-primary);
-}
-.cl-status-pill::before {
-  content:""; width:.45rem; height:.45rem; background:currentColor;
-  border-radius:100%; margin-right:.5rem;
-}
-.cl-status-done { color:var(--cl-success); background:var(--cl-panel-soft); }
-.cl-status-blocked { color:#B55B2C; background:var(--cl-panel-soft); }
-.cl-process-scroll { max-width:100%; overflow-x:auto; overflow-y:hidden; margin:0 0 1.45rem;
-  padding:.4rem .15rem .7rem; scrollbar-width:thin; }
-.cl-process-scroll:focus-visible { outline:3px solid var(--cl-turquoise); outline-offset:3px; }
-.cl-process-steps {
-  list-style:none; display:flex; gap:.48rem;
-  min-width:760px; padding:0; margin:0;
-}
-.cl-step {
-  position:relative; flex:1 1 0; min-width:96px;
-  display:flex; align-items:flex-start; gap:.55rem;
-  background:var(--cl-panel); border:1px solid var(--cl-border);
-  border-radius:12px; padding:.74rem .7rem; color:var(--cl-muted);
-  transition:background .16s ease, border-color .16s ease;
-}
-.cl-step:not(:last-child)::after {
-  content:""; position:absolute; width:.48rem; height:2px;
-  top:50%; left:100%; background:var(--cl-border);
-}
-.cl-step-icon {
-  width:29px; height:29px; flex-shrink:0; border-radius:9px;
-  display:grid; place-items:center; background:var(--cl-panel-soft);
-  color:var(--cl-muted);
-}
-.cl-step-content { display:flex; min-width:0; flex-direction:column; gap:.22rem; }
-.cl-step-name { font-size:.77rem; font-weight:800; line-height:1.3; color:var(--cl-text); }
-.cl-step-owner { font-size:.66rem; line-height:1.25; color:var(--cl-muted); }
-.cl-step-state { font-size:.65rem; line-height:1.25; color:var(--cl-muted); }
-.cl-step-anterior { border-color:color-mix(in srgb,var(--cl-success) 35%,var(--cl-border)); }
-.cl-step-anterior .cl-step-icon { background:var(--cl-panel-soft); color:var(--cl-success); }
-.cl-step-actual {
-  background:var(--cl-primary-weak); border-color:var(--cl-primary);
-  box-shadow:0 0 0 1px color-mix(in srgb,var(--cl-primary) 18%,transparent);
-}
-.cl-step-actual .cl-step-icon { background:var(--cl-primary); color:var(--cl-panel); }
-.cl-step-actual .cl-step-name, .cl-step-actual .cl-step-state { color:var(--cl-primary); }
-.cl-step-pendiente { opacity:.8; }
-.cl-state-list { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:.55rem;
-  margin:.6rem 0 1.25rem; }
-.cl-state-item { background:var(--cl-panel); border:1px solid var(--cl-border);
-  border-radius:12px; padding:.7rem .85rem; display:flex; gap:.8rem; align-items:center; }
-.cl-state-count { font:800 1.2rem/1 "Manrope",sans-serif; color:var(--cl-primary); }
-.cl-state-name { color:var(--cl-text); font-size:.76rem; font-weight:650; }
-@media (max-width:900px) { .cl-state-list { grid-template-columns:repeat(2,minmax(0,1fr)); } }
-@media (max-width:600px) {
- .cl-process-summary { padding:1.05rem 1.1rem; }
- .cl-process-summary-title { font-size:1.1rem; }
- .cl-process-steps { min-width:700px; }
- .cl-step { padding:.6rem; gap:.35rem; }
- .cl-step-icon { width:24px; height:24px; }
- .cl-state-list { grid-template-columns:1fr; }
-}
-
-@media (max-width:800px) {
- [data-testid="stMainBlockContainer"] { padding-top: .65rem; padding-left: 1rem; padding-right: 1rem; }
- .cl-hero { border-radius: 17px; min-height: 0; padding: 1.35rem 1.2rem; }
- .cl-hero-chip { position: static; display:inline-block; margin-top: .85rem; }
- .cl-metric-grid { grid-template-columns: 1fr; gap: .7rem; }
- .cl-metric-card { padding: 1.05rem; }
- .cl-metric-value { font-size:1.7rem; }
- div.stButton > button { min-height:2.85rem; }
-}
-@media (prefers-reduced-motion:reduce) {
- *, *::before,*::after { animation-duration:.01ms !important;
- transition-duration:.01ms !important; scroll-behavior:auto !important; }
-}
-"""
-    # st.markdown interpreta HTML inline mezclado con <style> como Markdown.
-    # st.html aplica los estilos sin mostrar CSS como texto en la página.
-    # La etiqueta del tema sigue dentro del mismo árbol DOM de Streamlit.
+    css = (Path(__file__).resolve().parent / "premium.css").read_text(encoding="utf-8")
     st.html(
         f'<span id="{marker}" aria-hidden="true" style="display:none"></span>'
-        f'<style>{css}</style>'
+        f"<style>{css}</style>"
     )
 
 
 def brand(compact: bool = False) -> None:
-    label = "GESTIÓN DE PROYECTOS" if not compact else "PLATAFORMA COLORLINK"
-    st.markdown(
-        '<div class="cl-brand">'
+    subtitle = "GESTIÓN INTELIGENTE" if not compact else "UNA NUEVA FORMA DE GESTIONAR"
+    st.html(
+        '<div class="cl-brand" aria-label="COLORLINK">'
         f'<div class="cl-mark">{icon_svg("layers", 22)}</div>'
         '<div><span class="cl-brand-title">COLORLINK</span>'
-        f'<span class="cl-brand-sub">{label}</span></div></div>',
-        unsafe_allow_html=True,
+        f'<span class="cl-brand-sub">{subtitle}</span></div></div>'
     )
 
 
 def user_identity(name: str, role: str) -> None:
-    st.markdown(
-        '<div class="cl-user-card">'
-        f'<div class="cl-user-name">{escape(str(name))}</div>'
-        f'<div class="cl-user-role">{escape(ROLE_LABELS.get(role, role.replace("_", " ").title()))}'
-        ' · Sesión protegida</div></div>',
-        unsafe_allow_html=True,
+    safe = str(name or "Cuenta COLORLINK").strip()
+    initial = escape((safe[:1] or "C").upper())
+    role_title = escape(ROLE_LABELS.get(role, role.replace("_", " ").title()))
+    st.html(
+        '<div class="cl-user-card" aria-label="Usuario y rol actual">'
+        f'<span class="cl-avatar" aria-hidden="true">{initial}</span>'
+        '<span class="cl-user-details">'
+        f'<span class="cl-user-name">{escape(safe)}</span>'
+        f'<span class="cl-user-role">{role_title}</span></span></div>'
+    )
+
+
+def navigation_group(title: str) -> None:
+    st.html(f'<p class="cl-nav-title">{escape(title)}</p>')
+
+
+def workspace_breadcrumb(role_name: str, current_page: str) -> None:
+    st.html(
+        '<div class="cl-topbar">'
+        '<div class="cl-crumbs" aria-label="Ubicación actual">'
+        '<span>COLORLINK</span><span aria-hidden="true">/</span>'
+        f'<span>{escape(role_name)}</span><span aria-hidden="true">/</span>'
+        f'<strong>{escape(current_page)}</strong></div>'
+        '<span class="cl-topbar-status">Espacio de trabajo</span>'
+        '</div>'
     )
 
 
 def page_hero(eyebrow: str, title: str, description: str, *, chip: str = "COLORLINK") -> None:
-    st.markdown(
+    st.html(
         '<section class="cl-hero" aria-label="Encabezado de página">'
         f'<p class="cl-hero-kicker">{escape(eyebrow)}</p>'
         f'<h1 class="cl-hero-title">{escape(title)}</h1>'
         f'<p class="cl-hero-desc">{escape(description)}</p>'
-        f'<span class="cl-hero-chip">{escape(chip)}</span>'
-        '</section>',
-        unsafe_allow_html=True,
+        f'<span class="cl-hero-chip">{escape(chip)}</span></section>'
     )
 
 
@@ -466,13 +139,111 @@ def metric_cards(items: list[tuple[str, int | float, str, str]]) -> None:
             f'<div class="cl-metric-value">{escape(str(value))}</div>'
             f'<div class="cl-metric-foot">{escape(str(description))}</div></article>'
         )
-    st.markdown('<div class="cl-metric-grid">' + "".join(cards) + '</div>', unsafe_allow_html=True)
+    st.html('<div class="cl-metric-grid">' + "".join(cards) + "</div>")
 
 
 def section_intro(eyebrow: str, title: str, description: str = "") -> None:
-    st.markdown(
-        f'<span class="cl-section-eyebrow">{escape(eyebrow)}</span>'
+    st.html(
+        f'<p class="cl-section-eyebrow">{escape(eyebrow)}</p>'
         f'<h2 class="cl-section-head">{escape(title)}</h2>'
-        f'<p class="cl-section-text">{escape(description)}</p>',
-        unsafe_allow_html=True,
+        f'<p class="cl-section-text">{escape(description)}</p>'
+    )
+
+
+def module_flag(stage: str, hint: str) -> None:
+    """Quiet, reusable section separator for all operating roles."""
+    st.html(
+        f'<p class="cl-section-flag">{escape(stage)}'
+        f'<strong>{escape(hint)}</strong></p>'
+    )
+
+
+def auth_showcase() -> None:
+    """Static visual storytelling; never suggests fictitious live activity."""
+    st.html(
+        '<div class="cl-auth-page"><section class="cl-auth-showcase">'
+        '<div class="cl-auth-brand">COLORLINK <span style="color:#C8F18C">✳</span></div>'
+        '<span class="cl-auth-tag">Tu operación, conectada</span>'
+        '<h1 class="cl-auth-title">Cada proyecto.<br>'
+        'Cada detalle.<br><em>Todo conectado.</em></h1>'
+        '<p class="cl-auth-description">Una experiencia diseñada para llevar tus '
+        'solicitudes desde el primer diagnóstico hasta la entrega final, '
+        'con claridad en cada decisión.</p>'
+        '<div class="cl-auth-journey" aria-label="Capacidades de COLORLINK">'
+        '<div class="cl-auth-journey-item"><span class="cl-auth-journey-num">01</span>'
+        '<span class="cl-auth-journey-text">Planifica proyectos y solicitudes</span></div>'
+        '<div class="cl-auth-journey-item"><span class="cl-auth-journey-num">02</span>'
+        '<span class="cl-auth-journey-text">Coordina revisión, materiales y ejecución</span></div>'
+        '<div class="cl-auth-journey-item"><span class="cl-auth-journey-num">03</span>'
+        '<span class="cl-auth-journey-text">Consulta el seguimiento y los dictámenes</span></div>'
+        '</div></section></div>'
+    )
+
+
+def auth_form_heading() -> None:
+    st.html(
+        '<div class="cl-auth-form-header">'
+        '<span class="cl-auth-form-eyebrow">Bienvenido a tu espacio</span>'
+        '<h2 class="cl-auth-form-title">Tu trabajo empieza aquí.</h2>'
+        '<p class="cl-auth-form-desc">Accede de forma segura o crea tu cuenta '
+        'para comenzar a gestionar tus proyectos.</p></div>'
+    )
+
+
+def auth_security_note() -> None:
+    st.html('<p class="cl-auth-security">Acceso protegido mediante tu cuenta personal</p>')
+
+
+
+def record_cards(
+    rows: list[dict], *, title_field: str, detail_field: str = "",
+    state_field: str = "", limit: int = 3,
+) -> None:
+    """Accessible, informational record snapshots; original tables remain available."""
+    if not isinstance(rows, list) or not rows:
+        return
+    cards: list[str] = []
+    for row in rows[:max(1, min(limit, 6))]:
+        if not isinstance(row, dict):
+            continue
+        raw_title = row.get(title_field)
+        title = str(raw_title or "Registro sin título")
+        if title_field == "id" and len(title) > 8:
+            title = "#" + title[:8].upper()
+        detail = str(row.get(detail_field) or "") if detail_field else ""
+        status = str(row.get(state_field) or "") if state_field else ""
+        cards.append(
+            '<article class="cl-record-card">'
+            '<span class="cl-record-ident" aria-hidden="true"></span>'
+            f'<h4>{escape(title)}</h4>'
+            + (f'<p>{escape(detail)}</p>' if detail else '')
+            + (f'<span class="cl-record-status">{escape(status.replace("_", " "))}</span>'
+               if status else '')
+            + "</article>"
+        )
+    if cards:
+        st.html('<div class="cl-record-grid" aria-label="Resumen de registros">'
+                + "".join(cards) + '</div>')
+
+
+def empty_state(title: str, description: str, *, icon: str = "files") -> None:
+    """Presentational empty-state. Does not imply any record was created."""
+    st.html(
+        '<div class="cl-empty-state" role="status">'
+        f'<span class="cl-empty-icon">{icon_svg(icon, 24)}</span>'
+        f'<h3>{escape(title)}</h3>'
+        f'<p>{escape(description)}</p></div>'
+    )
+
+
+def journey_hint(label: str, title: str, details: str) -> None:
+    """Contextual workflow guidance, not a fabricated persisted event."""
+    st.html(
+        '<aside class="cl-journey-hint">'
+        '<span class="cl-journey-mark" aria-hidden="true">✳</span>'
+        '<div class="cl-journey-copy">'
+        f'<span>{escape(label)}</span>'
+        f'<strong>{escape(title)}</strong>'
+        f'<p>{escape(details)}</p></div>'
+        '</aside>'
     )
