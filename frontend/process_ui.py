@@ -247,3 +247,52 @@ def render_field_progress(value: object, *, label: str = "Avance registrado") ->
     if not (0 <= progress <= 100):
         return
     st.progress(int(progress), text=f"{label}: {progress:g} %")
+
+
+
+EVENT_LABELS = {
+    "reservar": "Reserva de materiales",
+    "preparar": "Preparación del pedido",
+    "despachar": "Despacho confirmado",
+    "cancelar": "Reserva cancelada",
+    "aprobar": "Aprobación registrada",
+    "rechazar": "Rechazo registrado",
+    "solicitar_correccion": "Corrección solicitada",
+    "solicitar_informacion": "Información solicitada",
+}
+
+
+def render_event_timeline(
+    events: object, *, event_key: str = "accion",
+    notes_key: str = "observaciones", limit: int = 12,
+) -> None:
+    """Audit events already returned by the authorized endpoint; no synthetic events."""
+    if not isinstance(events, list) or not events:
+        return
+    snippets: list[str] = []
+    for event in events[:max(1, min(limit, 30))]:
+        if not isinstance(event, dict):
+            continue
+        original_action = str(event.get(event_key, "") or "")
+        action = EVENT_LABELS.get(
+            original_action, original_action.replace("_", " ").capitalize()
+        ) or "Actividad registrada"
+        timestamp = str(event.get("created_at") or "")
+        when = timestamp[:16].replace("T", " · ") if len(timestamp) >= 16 else (
+            timestamp[:10] if len(timestamp) >= 10 else ""
+        )
+        details = str(event.get(notes_key) or "")
+        snippets.append(
+            '<li class="cl-event-item"><span class="cl-event-dot" aria-hidden="true"></span>'
+            '<div class="cl-event-body"><div class="cl-event-head">'
+            '<strong>' + clean(action) + '</strong>'
+            + ('<time>' + clean(when) + '</time>' if when else '')
+            + '</div>'
+            + ('<p>' + clean(details) + '</p>' if details else '')
+            + '</div></li>'
+        )
+    if snippets:
+        st.html(
+            '<ol class="cl-event-timeline" aria-label="Historial cronológico de eventos">'
+            + "".join(snippets) + '</ol>'
+        )
