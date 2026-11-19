@@ -1,0 +1,72 @@
+name: Premium UX browser QA
+
+on:
+  push:
+    branches: ["feat/ux-premium-overhaul"]
+    paths:
+      - "frontend/**"
+      - "tests/visual_smoke/**"
+      - ".github/workflows/visual-qa.yml"
+  pull_request:
+    paths:
+      - "frontend/**"
+      - "tests/visual_smoke/**"
+      - ".github/workflows/visual-qa.yml"
+  workflow_dispatch:
+
+jobs:
+  chromium:
+    name: Real-browser smoke (desktop + mobile)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install app and browser QA dependencies
+        run: |
+          python -m pip install -r backend/requirements.txt -r frontend/requirements.txt playwright
+          python -m playwright install --with-deps chromium
+      - name: Start isolated QA services without secrets
+        shell: bash
+        run: |
+          set -euo pipefail
+          nohup python -m uvicorn mock_api:app --app-dir tests/visual_smoke \
+            --host 127.0.0.1 --port 8111 > /tmp/colorlink-qa-api.log 2>&1 &
+          API_BASE_URL=http://127.0.0.1:8111 \
+            nohup python -m streamlit run frontend/app.py \
+            --server.headless=true --server.port=8501 \
+            --server.address=127.0.0.1 \
+            --server.fileWatcherType=none \
+            --browser.gatherUsageStats=false \
+            > /tmp/colorlink-qa-ui.log 2>&1 &
+          for attempt in $(seq 1 75); do
+            if curl --silent --fail --max-time 3 http://127.0.0.1:8501/_stcore/health >/dev/null \
+              && curl --silent --fail --max-time 3 http://127.0.0.1:8111/openapi.json >/dev/null; then
+              echo "Visual QA services are healthy"
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Unable to start isolated test services"
+          exit 1
+      - name: Inspect real browser UI at desktop and mobile breakpoints
+        env:
+          VISUAL_QA_URL: http://127.0.0.1:8501
+        run: python tests/visual_smoke/browser_qa.py
+      - name: Upload visual screenshots for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: colorlink-premium-visual-qa
+          path: visual-qa-screenshots/*.png
+          if-no-files-found: warn
+          retention-days: 7
+      - name: Show sanitized local service logs on failure
+        if: failure()
+        run: |
+          tail -80 /tmp/colorlink-qa-api.log || true
+          tail -100 /tmp/colorlink-qa-ui.log || true
