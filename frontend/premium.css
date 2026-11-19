@@ -5,7 +5,7 @@
 :root { color-scheme:light; }
 [data-testid="stApp"] {
   --cl-bg:#F4F5FA; --cl-panel:#FFFFFF; --cl-panel-soft:#F7F8FD;
-  --cl-text:#28334B; --cl-heading:#11182D; --cl-muted:#758198;
+  --cl-text:#28334B; --cl-heading:#11182D; --cl-muted:#64708A;
   --cl-border:#E6E9F2; --cl-primary:#604EEB; --cl-primary-hover:#4C39D9;
   --cl-primary-weak:#F0EDFF; --cl-turquoise:#0C9C93; --cl-success:#13866F;
   --cl-shadow:0 9px 30px rgba(34,36,80,.055),0 1px 3px rgba(27,34,57,.025);
@@ -360,6 +360,43 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,
 .cl-auth-security::before {content:"✓";color:var(--cl-turquoise);font-weight:900}
 [data-testid="stApp"]:has(.cl-auth-page) [data-testid="stSidebar"] {display:none!important}
 [data-testid="stApp"]:has(.cl-auth-page) [data-testid="stMainBlockContainer"] {max-width:1240px;padding:2.6rem 1.5rem 4rem}
+
+.cl-record-grid {display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.8rem;margin:.75rem 0 1.25rem}
+.cl-record-card {
+  min-width:0;position:relative;background:var(--cl-panel);
+  border:1px solid var(--cl-border);border-radius:15px;
+  padding:1.2rem 1.15rem;box-shadow:var(--cl-shadow);
+  transition:transform .18s ease,border-color .18s ease;
+}
+.cl-record-card:hover {transform:translateY(-2px);border-color:color-mix(in srgb,var(--cl-primary) 40%,var(--cl-border))}
+.cl-record-ident {display:inline-block;width:24px;height:4px;background:linear-gradient(90deg,var(--cl-primary),var(--cl-turquoise));
+ border-radius:10px;margin:0 0 .85rem}
+.cl-record-card h4 {font:800 1.02rem/1.3 "Outfit",sans-serif;color:var(--cl-heading);
+  margin:0 0 .36rem;word-break:break-word}
+.cl-record-card p {color:var(--cl-muted);font-size:.77rem;line-height:1.55;margin:.2rem 0 .65rem;word-break:break-word}
+.cl-record-status {display:inline-block;padding:.3rem .55rem;border-radius:8px;
+  background:var(--cl-primary-weak);color:var(--cl-primary);
+  font-size:.68rem;font-weight:800;text-transform:capitalize}
+.cl-empty-state {text-align:center;padding:2.5rem clamp(1rem,3vw,3rem);
+  background:var(--cl-panel);border:1px dashed var(--cl-border);
+  border-radius:17px;margin:.75rem 0 1.25rem}
+.cl-empty-icon {display:grid;place-items:center;width:54px;height:54px;
+  margin:0 auto 1rem;border-radius:16px;background:var(--cl-primary-weak);color:var(--cl-primary)}
+.cl-empty-state h3 {color:var(--cl-heading);font:800 1.25rem "Outfit",sans-serif;margin:0 0 .5rem}
+.cl-empty-state p {color:var(--cl-muted);font-size:.83rem;line-height:1.62;max-width:440px;margin:0 auto}
+.cl-journey-hint {display:flex;gap:1rem;align-items:center;background:var(--cl-panel);
+  border:1px solid var(--cl-border);border-radius:15px;
+  padding:1rem 1.15rem;margin:.5rem 0 1.35rem;box-shadow:var(--cl-shadow)}
+.cl-journey-mark {flex-shrink:0;display:grid;place-items:center;width:42px;height:42px;
+ border-radius:12px;background:var(--cl-primary-weak);color:var(--cl-primary);
+ font-size:1.3rem}
+.cl-journey-copy {min-width:0}
+.cl-journey-copy > span {display:block;color:var(--cl-turquoise);
+ font-size:.64rem;font-weight:850;letter-spacing:.13em;text-transform:uppercase}
+.cl-journey-copy strong {display:block;color:var(--cl-heading)!important;
+ font:800 .98rem "Outfit",sans-serif;margin:.2rem 0}
+.cl-journey-copy p {margin:0;font-size:.77rem;color:var(--cl-muted);line-height:1.5}
+
 @media(max-width:1000px) {
   [data-testid="stSidebar"] {width:270px!important;min-width:270px!important}
   .cl-auth-showcase {min-height:0;padding:2rem}
@@ -372,6 +409,7 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,
   .cl-hero-title {font-size:2rem!important}
   .cl-hero::before {width:290px;height:290px;right:-185px}
   .cl-metric-grid {grid-template-columns:1fr;gap:.65rem}
+  .cl-record-grid {grid-template-columns:1fr 1fr}
   .cl-state-list {grid-template-columns:1fr 1fr}
   .cl-process-summary {padding:1rem}
   .cl-auth-showcase {min-height:0;border-radius:18px;padding:1.4rem}
@@ -383,6 +421,8 @@ button:focus-visible,input:focus-visible,textarea:focus-visible,
 }
 @media(max-width:500px) {
  .cl-state-list {grid-template-columns:1fr}
+ .cl-record-grid {grid-template-columns:1fr}
+ .cl-journey-hint {align-items:flex-start}
  .cl-process-steps {min-width:700px}
  .cl-step {padding:.55rem .45rem;gap:.35rem}
  .cl-step-icon {width:24px;height:24px}
