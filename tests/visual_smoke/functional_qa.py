@@ -49,7 +49,14 @@ def test_signup(browser):
     page.get_by_label("Correo para registro").fill("qa.registro@example.test")
     page.get_by_label("Crear contraseña (mínimo 8 caracteres)").fill("clave-segura-123")
     page.get_by_label("Confirmar contraseña").fill("diferente")
-    page.get_by_label("Confirmo que utilizaré mi propia cuenta para acceder.").check()
+    # Streamlit renders a visually-hidden native checkbox inside a clickable
+    # label. Click its visible text instead of the hidden input.
+    page.get_by_text(
+        "Confirmo que utilizaré mi propia cuenta para acceder.", exact=True
+    ).click()
+    expect(page.get_by_role(
+        "checkbox", name="Confirmo que utilizaré mi propia cuenta para acceder."
+    )).to_be_checked()
     count = len(matching("auth/register"))
     page.get_by_role("button", name="Crear mi cuenta").click()
     expect(page.get_by_text("Las contraseñas no coinciden.")).to_be_visible()
