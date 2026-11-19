@@ -126,8 +126,18 @@ def main() -> None:
             assert not sidebar_overlay, (
                 "El menú lateral debe estar plegado inicialmente en móviles"
             )
+            collapsed_control = mobile_user.locator(
+                '[data-testid="stSidebarCollapsedControl"]'
+            )
+            expect(collapsed_control).to_be_visible(timeout=10000)
+            collapsed_control.click()
+            expect(mobile_user.locator('[data-testid="stSidebar"]')).to_be_visible()
+            expect(mobile_user.locator('[data-testid="stSidebar"]').get_by_text(
+                "Mi panel", exact=True,
+            )).to_be_visible()
+            capture(mobile_user, "08-client-mobile-navigation")
             print("BROWSER QA PASSED: login, signup, 5 roles, responsive "
-                  "desktop/tablet/mobile, contrast and collapsed sidebar")
+                  "desktop/tablet/mobile, contrast and navigable sidebar")
         finally:
             browser.close()
 
