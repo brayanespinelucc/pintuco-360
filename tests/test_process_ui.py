@@ -100,3 +100,41 @@ def test_visualization_is_frontend_only_and_does_not_mutate_contracts():
     assert '"POST"' not in source
     assert "supabase_rest" not in source
     assert 'from .design import icon_svg' in source
+
+
+
+def test_event_timeline_uses_only_existing_events_and_escapes_notes(monkeypatch):
+    html = []
+    monkeypatch.setattr(process_ui.st, "html", lambda x: html.append(x))
+    process_ui.render_event_timeline([
+        {
+            "accion": "reservar", "created_at": "2026-11-18T12:20:45Z",
+            "observaciones": "<script>alert('x')</script>",
+        },
+        {
+            "accion": "despachar", "created_at": "2026-11-18T13:20:45Z",
+            "observaciones": "Materiales enviados",
+        }
+    ])
+    assert len(html) == 1
+    assert "Reserva de materiales" in html[0]
+    assert "Despacho confirmado" in html[0]
+    assert "2026-11-18 · 12:20" in html[0]
+    assert "&lt;script&gt;" in html[0]
+    assert "<script>" not in html[0]
+    assert html[0].count("cl-event-item") == 2
+    html.clear()
+    process_ui.render_event_timeline([])
+    assert html == []
+
+
+def test_timeline_handles_incomplete_data_without_inventing_dates(monkeypatch):
+    html = []
+    monkeypatch.setattr(process_ui.st, "html", lambda x: html.append(x))
+    process_ui.render_event_timeline([
+        {"decision": "solicitar_correccion", "observaciones": "Aclarar superficies"}
+    ], event_key="decision")
+    assert len(html) == 1
+    assert "Corrección solicitada" in html[0]
+    assert "<time>" not in html[0]
+    assert "Aclarar superficies" in html[0]
