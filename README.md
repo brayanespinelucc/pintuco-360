@@ -118,3 +118,10 @@ La guía completa, limitaciones del plan gratis y verificación de accesos está
 El portal incluye **Crear cuenta** para nuevos usuarios, integrado con Supabase Auth. Los usuarios recién registrados comienzan como **Cliente**. Las cuentas que el propietario autorice individualmente como evaluadoras podrán alternar entre **Cliente, Especialista técnico, Logística, Aplicador y Control de calidad** sin volver a iniciar sesión ni cambiar contraseñas. Los permisos se aplican realmente en Supabase y los cambios se auditan.
 
 **No está abierto al público el cambio de roles.** El propietario habilita solamente el correo confirmado del profesor *después* de que este se registre por su cuenta. Consulta [la guía de registro y habilitación](docs/REGISTRO_EVALUADOR.md) antes de autorizar a alguien. La guía incluye el SQL de autorización y revocación y el orden completo del proceso.
+
+
+## Experiencia de proceso y seguimiento visual
+
+COLORLINK integra un seguimiento centrado en el expediente: **stepper de etapas basado en estados reales, vista central de solicitud, acciones contextuales, indicadores por rol y líneas de tiempo de eventos auditables**. Los componentes reutilizables son exclusivamente visuales: conservan los endpoints, la autenticación, los permisos y las validaciones funcionales.
+
+Consulta [auditoría, mapa de estados y resultados de la evolución UX/UI](docs/PROCESO_UX.md) para conocer lo implementado, las comprobaciones y lo pendiente de validación visual manual.
