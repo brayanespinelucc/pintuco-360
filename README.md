@@ -97,3 +97,17 @@ Inspector `calidad` revisa las actividades, incidencias y fotografías de RF-07,
 ## Rediseño del frontend (UX/UI)
 
 COLORLINK incluye un sistema de diseño visual premium en Streamlit con **menú lateral contextual**, pantallas de cliente independientes, navegación específica de logística y calidad, temas claro y oscuro, indicadores y accesos rápidos, además de mejoras de legibilidad y accesibilidad. Los contratos de FastAPI y los permisos existentes se mantienen intactos. Consulta [auditoría, diseño y pruebas del frontend](docs/FRONTEND_REDESIGN.md).
+
+
+## Publicar COLORLINK para acceso por internet
+
+El repositorio incluye una configuración de **Render Blueprint**, que ejecuta Streamlit y FastAPI en un solo Web Service Docker. La base de datos Supabase y las credenciales de usuario actuales siguen funcionando sin migraciones.
+
+1. Conecta el repositorio privado a [Render](https://dashboard.render.com).
+2. Elige **New → Blueprint**, selecciona la rama \`feat/base-plataforma-pintuco360\` y el archivo \`render.yaml\`.
+3. Configura \`SUPABASE_ANON_KEY\` y \`GEMINI_API_KEY\` mediante variables protegidas en Render. No subas \`.env\` al repositorio.
+4. Despliega y comparte el enlace \`https://...onrender.com\` que Render asigne cuando el servicio esté **Live**.
+
+La guía completa, limitaciones del plan gratis y verificación de accesos están en [docs/PUBLICAR_RENDER.md](docs/PUBLICAR_RENDER.md).
+
+**Nota:** estos archivos preparan la publicación, pero la URL pública no existe hasta autorizar el despliegue en la cuenta Render del propietario.
