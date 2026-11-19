@@ -29,11 +29,21 @@ def api(monkeypatch):
             response_data = {
                 "id": "72afe3f6-08f3-42d4-825d-b09943f977f4",
                 "role": active_role["role"],
+                "can_switch_roles": active_role.get("evaluator", False),
                 "full_name": "Cuenta de pruebas",
                 "email": "demo@example.com",
             }
         elif path == "/auth/login":
             response_data = {"access_token": "jwt-test"}
+        elif path == "/auth/evaluator/role" and method == "POST":
+            selected = kwargs["json"]["role"]
+            active_role["role"] = selected
+            response_data = {"role": selected, "enabled": True}
+        elif path == "/auth/register" and method == "POST":
+            response_data = {
+                "message": "Solicitud recibida. Revisa tu correo.",
+                "requires_confirmation": True,
+            }
         elif method == "GET" and path in {
             "/capture/clientes", "/capture/proyectos", "/capture/solicitudes",
             "/logistica/bandeja", "/logistica/ordenes", "/campo/elegibles",
@@ -205,3 +215,37 @@ def test_client_facing_brand_copy_has_no_academic_demo_banners():
     # es_demostrativo is a backend response field, never rename the contract.
     assert '["es_demostrativo"]' in sources[0]
     assert 'No constituye una reserva' in sources[0]
+
+
+
+def test_self_registration_screen_visible_to_public(api):
+    app = AppTest.from_file(APP_FILE, default_timeout=20).run()
+    assert not app.exception
+    assert [t.label for t in app.tabs] == ["Iniciar sesión", "Crear cuenta"]
+    assert any(x.label == "Correo para registro" for x in app.text_input)
+    assert any(x.label == "Crear mi cuenta" for x in app.button)
+
+
+def test_evaluator_can_change_role_and_return_without_impersonating_user(api):
+    seen, role = api
+    role["evaluator"] = True
+    app = _open_app()
+    assert not app.exception
+    selector = next(x for x in app.selectbox if x.label == "Probar funcionalidades como")
+    assert selector.options == [
+        "cliente", "especialista_tecnico", "logistica", "aplicador", "calidad",
+    ]
+    selector.set_value("calidad").run()
+    assert not app.exception
+    switch = next(x for x in app.button if x.label == "Cambiar al rol seleccionado")
+    switch.click().run()
+    assert not app.exception
+    assert role["role"] == "calidad"
+    assert ("POST", "/auth/evaluator/role") in seen
+    assert any("Inspecciones pendientes" == y for y in app.radio[0].options)
+
+
+def test_normal_user_does_not_have_any_role_changer(api):
+    app = _open_app()
+    assert not any(x.label == "Probar funcionalidades como" for x in app.selectbox)
+    assert not any(x.label == "Cambiar al rol seleccionado" for x in app.button)
