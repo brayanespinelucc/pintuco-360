@@ -233,9 +233,9 @@ def test_evaluator_can_change_role_and_return_without_impersonating_user(api):
     assert not app.exception
     selector = next(x for x in app.selectbox if x.label == "Probar funcionalidades como")
     assert selector.options == [
-        "cliente", "especialista_tecnico", "logistica", "aplicador", "calidad",
+        "Cliente", "Especialista técnico", "Logística", "Aplicador", "Control de calidad",
     ]
-    selector.set_value("calidad").run()
+    selector.set_value("Control de calidad").run()
     assert not app.exception
     switch = next(x for x in app.button if x.label == "Cambiar al rol seleccionado")
     switch.click().run()
