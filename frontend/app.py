@@ -104,32 +104,82 @@ if not st.session_state.get("access_token"):
             "Gestiona tus proyectos, solicitudes y revisiones en un solo lugar.",
             chip="GESTIÓN INTEGRAL",
         )
-        st.subheader("Iniciar sesión")
-        st.caption("Ingresa con tu cuenta autorizada para continuar.")
-        with st.form("login"):
-            email = st.text_input("Correo electrónico")
-            password = st.text_input("Contraseña", type="password")
-            submitted = st.form_submit_button(
-                "Ingresar a mi espacio", type="primary", use_container_width=True
+        entry, sign_up = st.tabs(["Iniciar sesión", "Crear cuenta"])
+        with entry:
+            st.caption("Ingresa con tu cuenta autorizada para continuar.")
+            with st.form("login"):
+                email = st.text_input("Correo electrónico")
+                password = st.text_input("Contraseña", type="password")
+                submitted = st.form_submit_button(
+                    "Ingresar a mi espacio", type="primary", use_container_width=True
+                )
+            if submitted:
+                print("COLORLINK_UI_LOGIN_SUBMIT: formulario enviado", flush=True)
+                if not email.strip() or not password:
+                    st.warning("Completa el correo y la contraseña.")
+                else:
+                    with st.spinner("Validando acceso..."):
+                        result = call(
+                            "POST", "/auth/login",
+                            json={"email": email.strip(), "password": password},
+                        )
+                    if result and result.get("access_token"):
+                        st.session_state["access_token"] = result["access_token"]
+                        st.rerun()
+                    elif result is None:
+                        st.caption(
+                            "Si el problema continúa, comunícalo al administrador de COLORLINK."
+                        )
+        with sign_up:
+            st.caption("Crea una cuenta con tu propio correo electrónico.")
+            with st.form("register"):
+                full_name = st.text_input("Nombre completo", key="register_name")
+                register_email = st.text_input(
+                    "Correo para registro", key="register_email"
+                )
+                register_password = st.text_input(
+                    "Crear contraseña (mínimo 8 caracteres)",
+                    type="password", key="register_password"
+                )
+                confirm_password = st.text_input(
+                    "Confirmar contraseña", type="password",
+                    key="register_confirm_password"
+                )
+                accept_signup = st.checkbox(
+                    "Confirmo que utilizaré mi propia cuenta para acceder."
+                )
+                create_account = st.form_submit_button(
+                    "Crear mi cuenta", type="primary", use_container_width=True
+                )
+            if create_account:
+                if len(full_name.strip()) < 2 or len(register_email.strip()) < 5:
+                    st.warning("Completa tu nombre y un correo electrónico válido.")
+                elif len(register_password) < 8:
+                    st.warning("La contraseña debe tener al menos 8 caracteres.")
+                elif register_password != confirm_password:
+                    st.warning("Las contraseñas no coinciden.")
+                elif not accept_signup:
+                    st.warning("Confirma que deseas crear tu cuenta.")
+                else:
+                    with st.spinner("Registrando cuenta..."):
+                        result = call(
+                            "POST", "/auth/register",
+                            json={
+                                "full_name": full_name.strip(),
+                                "email": register_email.strip().lower(),
+                                "password": register_password,
+                            }
+                        )
+                    if result:
+                        st.success(result["message"])
+                        st.info(
+                            "Ingresa en la pestaña Iniciar sesión después "
+                            "de confirmar el correo si se te solicita."
+                        )
+            st.caption(
+                "Las nuevas cuentas comienzan como Cliente. "
+                "El acceso al selector de roles requiere autorización del administrador."
             )
-        if submitted:
-            # Solo registra el evento; nunca imprime correo, contraseña ni tokens.
-            print("COLORLINK_UI_LOGIN_SUBMIT: formulario enviado", flush=True)
-            if not email.strip() or not password:
-                st.warning("Completa el correo y la contraseña.")
-            else:
-                with st.spinner("Validando acceso..."):
-                    result = call(
-                        "POST", "/auth/login",
-                        json={"email": email.strip(), "password": password},
-                    )
-                if result and result.get("access_token"):
-                    st.session_state["access_token"] = result["access_token"]
-                    st.rerun()
-                elif result is None:
-                    st.caption(
-                        "Si el problema continúa, comunícalo al administrador de COLORLINK."
-                    )
     st.stop()
 
 profile = call("GET", "/auth/me")
@@ -178,6 +228,40 @@ with st.sidebar:
             key="cl_quality_page",
             label_visibility="collapsed",
         )
+    if profile.get("can_switch_roles"):
+        st.divider()
+        st.markdown(
+            '<p class="cl-nav-label">Modo evaluador</p>',
+            unsafe_allow_html=True,
+        )
+        evaluator_roles = [
+            "cliente", "especialista_tecnico", "logistica", "aplicador", "calidad",
+        ]
+        selected_role = st.selectbox(
+            "Probar funcionalidades como",
+            evaluator_roles,
+            index=evaluator_roles.index(profile["role"])
+                  if profile["role"] in evaluator_roles else 0,
+            format_func=lambda role: ROLE_LABELS.get(role, role),
+            key="cl_evaluator_role",
+        )
+        if selected_role != profile["role"]:
+            if st.button(
+                "Cambiar al rol seleccionado", key="cl_evaluator_switch",
+                type="primary", use_container_width=True
+            ):
+                result = call(
+                    "POST", "/auth/evaluator/role",
+                    json={"role": selected_role},
+                )
+                if result and result.get("role") == selected_role:
+                    for key in (
+                        "cl_page", "cl_logistics_page", "cl_quality_page",
+                        "cl_evaluator_role",
+                    ):
+                        st.session_state.pop(key, None)
+                    st.rerun()
+        st.caption("Solo para cuentas autorizadas. Los cambios quedan registrados.")
     st.divider()
     st.toggle("Modo oscuro", key="cl_dark", help="Preferencia visual de esta sesión.")
     if st.button("Cerrar sesión", use_container_width=True):
