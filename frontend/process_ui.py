@@ -116,7 +116,10 @@ def stage_views(status: object) -> list[dict[str, object]]:
 
 def render_stepper(status: object, *, compact: bool = False) -> None:
     """Status-based visual orientation. Never pretends events were timestamped."""
-    from .design import icon_svg  # also importable from frontend.process_ui in tests
+    try:
+        from .design import icon_svg  # packaged import from tests
+    except ImportError:
+        from design import icon_svg  # Streamlit entrypoint runs as sibling module
 
     state = str(status or "")
     if state == "cancelada":
@@ -143,11 +146,10 @@ def render_stepper(status: object, *, compact: bool = False) -> None:
             + '<span class="cl-step-state">' + status_label + '</span>'
             '</span></li>'
         )
-    st.markdown(
+    st.html(
         '<div class="cl-process-scroll" role="region" '
-        'aria-label="Etapas del proceso, desplázate horizontalmente si es necesario">'
+        'aria-label="Etapas del proceso, desplázate horizontalmente si es necesario" tabindex="0">'
         '<ol class="cl-process-steps">' + "".join(parts) + '</ol></div>',
-        unsafe_allow_html=True,
     )
 
 
@@ -169,7 +171,7 @@ def render_request_panel(
         "blocked" if status in ("cancelada", "pendiente_informacion") else
         "done" if status == "finalizada" else "active"
     )
-    st.markdown(
+    st.html(
         '<article class="cl-process-summary" aria-label="'
         + clean(title) + '">'
         '<div class="cl-process-summary-top">'
@@ -179,7 +181,6 @@ def render_request_panel(
         '<span class="cl-status-pill cl-status-' + state_class + '">'
         + clean(name) + '</span></div>'
         '<p class="cl-process-hint">' + clean(explanation) + '</p></article>',
-        unsafe_allow_html=True,
     )
     render_stepper(status)
     if detail:
@@ -224,7 +225,7 @@ def render_state_distribution(requests: list[dict]) -> None:
         ((request_state(k)[0], k, v) for k, v in counts.items()),
         key=lambda x: (-x[2], x[0]),
     )
-    st.markdown(
+    st.html(
         '<div class="cl-state-list" aria-label="Solicitudes por estado">'
         + "".join(
             '<div class="cl-state-item"><span class="cl-state-count">'
@@ -232,7 +233,6 @@ def render_state_distribution(requests: list[dict]) -> None:
             + clean(label) + '</span></div>'
             for label, _, n in rows
         ) + '</div>',
-        unsafe_allow_html=True,
     )
 
 
