@@ -64,3 +64,47 @@ def test_premium_shell_is_presentation_only():
     assert "record_gallery(" in app
     assert "httpx." not in components
     assert "st.session_state" not in components
+
+
+
+def test_core_text_tokens_have_wcag_aa_contrast_against_page_and_panels(monkeypatch):
+    """Automated contrast floor for the light/dark CSS token pairs (not a full audit)."""
+    import re
+    from frontend import design
+
+    emitted = []
+    monkeypatch.setattr(design.st, "html", lambda html: emitted.append(html))
+    design.apply_design_system(False)
+    css = emitted[0].split("COLORLINK STUDIO / Premium editorial design language, 2026.", 1)[1]
+    light = css.split('[data-testid="stApp"]:has(#cl-theme-dark)', 1)[0]
+    dark = css.split('[data-testid="stApp"]:has(#cl-theme-dark)', 1)[1]
+
+    def css_color(source, name):
+        match = re.search(rf"{re.escape(name)}\s*:\s*(#[0-9A-Fa-f]{{6}})", source)
+        assert match, f"Missing design token: {name}"
+        return match.group(1)
+
+    def luminance(hex_color):
+        values = [int(hex_color[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+        linear = [v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4
+                  for v in values]
+        return sum(v * factor for v, factor in zip(
+            linear, (0.2126, 0.7152, 0.0722)
+        ))
+
+    def contrast(fg, bg):
+        a, b = sorted((luminance(fg), luminance(bg)))
+        return (b + 0.05) / (a + 0.05)
+
+    for mode in (light, dark):
+        foreground = [css_color(mode, name) for name in (
+            "--cl-text", "--cl-muted", "--cl-turquoise"
+        )]
+        surfaces = [css_color(mode, name) for name in (
+            "--cl-bg", "--cl-panel", "--cl-panel-soft"
+        )]
+        for fg in foreground:
+            for bg in surfaces:
+                assert contrast(fg, bg) >= 4.5, (
+                    f"Insufficient normal-text contrast: {fg} / {bg}"
+                )
