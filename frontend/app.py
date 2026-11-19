@@ -9,6 +9,7 @@ from design import (
     apply_design_system, brand, user_identity, page_hero,
     metric_cards, section_intro, navigation_group, workspace_breadcrumb,
     auth_showcase, auth_form_heading, auth_security_note, module_flag,
+    record_cards, empty_state, journey_hint,
 )
 from process_ui import (
     render_request_panel, render_stage_explorer,
@@ -1001,109 +1002,214 @@ if profile["role"] != "cliente":
 # Los formularios, claves y llamadas originales permanecen intactos.
 
 if client_page == "Mi empresa":
-    section_intro("PERFIL", "Tus empresas", "Crea y consulta organizaciones vinculadas a tu cuenta.")
-    with st.form("crear_cliente"):
-        nombre = st.text_input("Nombre de la empresa", max_chars=160)
-        ciudad = st.text_input("Ciudad", max_chars=100)
-        save_cliente = st.form_submit_button("Guardar empresa", type="primary")
-    if save_cliente and nombre.strip() and ciudad.strip():
-        if call("POST", "/capture/clientes", json={"nombre_empresa":nombre.strip(),"ciudad":ciudad.strip()}):
-            st.success("Empresa registrada.")
-            st.rerun()
+    section_intro(
+        "ORGANIZACIÓN", "Tu espacio empresarial",
+        "Registra tu organización y mantén su información disponible para tus proyectos.",
+    )
     clientes = call("GET", "/capture/clientes") or []
-    if clientes:
-        st.dataframe(clientes, use_container_width=True, hide_index=True)
-    else:
-        st.info("Primero registra tu empresa para crear proyectos.")
+    form_col, summary_col = st.columns([0.95, 1.05], gap="large")
+    with form_col:
+        module_flag("01 · DATOS PRINCIPALES", "Información de la empresa")
+        with st.form("crear_cliente"):
+            nombre = st.text_input("Nombre de la empresa", max_chars=160)
+            ciudad = st.text_input("Ciudad", max_chars=100)
+            save_cliente = st.form_submit_button(
+                "Guardar empresa", type="primary", use_container_width=True
+            )
+        if save_cliente and nombre.strip() and ciudad.strip():
+            if call(
+                "POST", "/capture/clientes",
+                json={"nombre_empresa": nombre.strip(), "ciudad": ciudad.strip()},
+            ):
+                st.success("Empresa registrada.")
+                st.rerun()
+    with summary_col:
+        module_flag("02 · TU DIRECTORIO", f"{len(clientes)} organizaciones registradas")
+        if clientes:
+            record_cards(
+                clientes, title_field="nombre_empresa",
+                detail_field="ciudad", limit=3,
+            )
+            with st.expander("Consultar directorio completo", expanded=True):
+                st.dataframe(clientes, use_container_width=True, hide_index=True)
+        else:
+            empty_state(
+                "Tu primera organización",
+                "Registra tu empresa para poder crear y organizar sus proyectos.",
+                icon="building-2",
+            )
+
 
 if client_page == "Proyectos":
-    section_intro("PLANIFICACIÓN", "Proyectos", "Organiza nuevos proyectos y consulta sus condiciones registradas.")
+    section_intro(
+        "PLANIFICACIÓN", "Diseña tu siguiente proyecto",
+        "Registra condiciones, superficie y requisitos; luego consulta los proyectos creados.",
+    )
     clientes = call("GET", "/capture/clientes") or []
     proyectos = call("GET", "/capture/proyectos") or []
-    if clientes:
-        by_name = {f"{c['nombre_empresa']} · {c['ciudad']}": c["id"] for c in clientes}
-        with st.form("crear_proyecto"):
-            empresa = st.selectbox("Empresa", list(by_name))
-            nombre = st.text_input("Nombre del proyecto", max_chars=180)
-            area = st.number_input("Área (m²)", min_value=0.01, value=85.0, step=1.0)
-            superficie = st.text_input("Superficie", value="Concreto", max_chars=100)
-            condicion = st.text_input("Condición", value="Humedad y fisuras", max_chars=300)
-            ambiente = st.selectbox("Ambiente", ["exterior", "interior"])
-            color = st.text_input("Color requerido", value="Gris", max_chars=100)
-            fecha = st.date_input("Fecha requerida", value=date.today()+timedelta(days=20),
-                                  min_value=date.today())
-            save_project = st.form_submit_button("Crear proyecto", type="primary")
-        if save_project:
-            payload = {
-                "cliente_id": by_name[empresa], "nombre_proyecto": nombre.strip(),
-                "area_m2": f"{area:.2f}", "tipo_superficie": superficie.strip(),
-                "condicion": condicion.strip(), "ambiente": ambiente,
-                "color_requerido": color.strip(), "fecha_requerida": fecha.isoformat()
-            }
-            if call("POST", "/capture/proyectos", json=payload):
-                st.success("Proyecto guardado.")
-                st.rerun()
-    else:
-        st.info("Debes registrar una empresa antes de crear un proyecto.")
-    if proyectos:
-        st.dataframe(proyectos, use_container_width=True, hide_index=True)
+    entry_col, inventory_col = st.columns([1.02, 0.98], gap="large")
+    with entry_col:
+        module_flag("01 · CREAR PROYECTO", "Información y condiciones")
+        if clientes:
+            by_name = {f"{c['nombre_empresa']} · {c['ciudad']}": c["id"] for c in clientes}
+            with st.form("crear_proyecto"):
+                empresa = st.selectbox("Empresa", list(by_name))
+                nombre = st.text_input("Nombre del proyecto", max_chars=180)
+                area = st.number_input("Área (m²)", min_value=0.01, value=85.0, step=1.0)
+                superficie = st.text_input("Superficie", value="Concreto", max_chars=100)
+                condicion = st.text_input("Condición", value="Humedad y fisuras", max_chars=300)
+                ambiente = st.selectbox("Ambiente", ["exterior", "interior"])
+                color = st.text_input("Color requerido", value="Gris", max_chars=100)
+                fecha = st.date_input(
+                    "Fecha requerida",
+                    value=date.today() + timedelta(days=20),
+                    min_value=date.today(),
+                )
+                save_project = st.form_submit_button(
+                    "Crear proyecto", type="primary", use_container_width=True
+                )
+            if save_project:
+                payload = {
+                    "cliente_id": by_name[empresa], "nombre_proyecto": nombre.strip(),
+                    "area_m2": f"{area:.2f}", "tipo_superficie": superficie.strip(),
+                    "condicion": condicion.strip(), "ambiente": ambiente,
+                    "color_requerido": color.strip(), "fecha_requerida": fecha.isoformat(),
+                }
+                if call("POST", "/capture/proyectos", json=payload):
+                    st.success("Proyecto guardado.")
+                    st.rerun()
+        else:
+            empty_state(
+                "Primero registra tu empresa",
+                "La empresa es necesaria para asociar un proyecto a tu organización.",
+                icon="building-2",
+            )
+    with inventory_col:
+        module_flag("02 · PROYECTOS", f"{len(proyectos)} proyectos registrados")
+        if proyectos:
+            record_cards(
+                proyectos, title_field="nombre_proyecto",
+                detail_field="tipo_superficie", limit=3,
+            )
+            with st.expander("Explorar todos los proyectos", expanded=True):
+                st.dataframe(proyectos, use_container_width=True, hide_index=True)
+        else:
+            empty_state(
+                "Todavía no hay proyectos",
+                "Los proyectos que crees aparecerán aquí para su consulta.",
+                icon="folder-kanban",
+            )
+
 
 if client_page == "Solicitudes":
-    section_intro("CAPTURA", "Solicitudes y evidencias", "Radica necesidades y adjunta fotografías a tus solicitudes.")
+    section_intro(
+        "SOLICITUDES", "De la necesidad a la acción",
+        "Crea una solicitud o abre un expediente para añadir evidencias y revisar su evolución.",
+    )
     proyectos = call("GET", "/capture/proyectos") or []
     solicitudes = call("GET", "/capture/solicitudes") or []
-    if proyectos:
-        by_project = {f"{p['nombre_proyecto']} · {p['id'][:8]}":p["id"] for p in proyectos}
-        with st.form("crear_solicitud"):
-            seleccionado = st.selectbox("Proyecto", list(by_project))
-            descripcion = st.text_area(
-                "Descripción de la necesidad",
-                placeholder="Describe la superficie, condiciones y trabajo requerido...",
-                max_chars=4000,
+    create_tab, files_tab = st.tabs([
+        "Radicar nueva solicitud", "Expedientes y evidencias",
+    ])
+    with create_tab:
+        module_flag("01 · RADICACIÓN", "Describe el trabajo que necesitas")
+        if proyectos:
+            by_project = {
+                f"{p['nombre_proyecto']} · {p['id'][:8]}": p["id"]
+                for p in proyectos
+            }
+            with st.form("crear_solicitud"):
+                seleccionado = st.selectbox("Proyecto", list(by_project))
+                descripcion = st.text_area(
+                    "Descripción de la necesidad",
+                    placeholder="Describe la superficie, condiciones y trabajo requerido...",
+                    max_chars=4000,
+                )
+                save_request = st.form_submit_button(
+                    "Radicar solicitud", type="primary", use_container_width=True
+                )
+            if save_request:
+                if call(
+                    "POST", "/capture/solicitudes",
+                    json={
+                        "proyecto_id": by_project[seleccionado],
+                        "descripcion_libre": descripcion.strip(),
+                    },
+                ):
+                    st.success("Solicitud radicada correctamente.")
+                    st.rerun()
+        else:
+            empty_state(
+                "Necesitas un proyecto primero",
+                "Crea un proyecto antes de radicar la solicitud de materiales.",
+                icon="folder-kanban",
             )
-            save_request = st.form_submit_button("Radicar solicitud", type="primary")
-        if save_request:
-            if call("POST", "/capture/solicitudes",
-                    json={"proyecto_id":by_project[seleccionado], "descripcion_libre":descripcion.strip()}):
-                st.success("Solicitud radicada correctamente.")
-                st.rerun()
-    else:
-        st.info("Primero debes crear un proyecto.")
-    if solicitudes:
-        st.subheader("Solicitudes registradas")
-        st.dataframe(solicitudes, use_container_width=True, hide_index=True)
-        by_request = {
-            f"{s['id'][:8]} · {s['estado']} · {s['created_at'][:10]}": s["id"] for s in solicitudes
-        }
-        seleccionado = st.selectbox("Solicitud para adjuntar fotos", list(by_request))
-        selected_request = next(
-            row for row in solicitudes if row["id"] == by_request[seleccionado]
-        )
-        project_names = {p["id"]: p["nombre_proyecto"] for p in proyectos}
-        render_request_panel(
-            selected_request, project_names,
-            title="Expediente de solicitud", detail=True,
-        )
-        render_stage_explorer(
-            selected_request.get("estado"), key="cl_request_stage",
-        )
-        fotos = st.file_uploader("Fotografías JPG o PNG (máximo 5 MB cada una)",
-                                 type=["jpg", "jpeg", "png"], accept_multiple_files=True)
-        if st.button("Adjuntar fotografías", type="primary"):
-            if not fotos:
-                st.warning("Selecciona al menos una fotografía.")
-            else:
-                for foto in fotos:
-                    if foto.size > 5 * 1024 * 1024:
-                        st.error(f"{foto.name}: supera los 5 MB.")
-                        continue
-                    result = call("POST", f"/capture/solicitudes/{by_request[seleccionado]}/evidencias",
-                                  files={"archivo": (foto.name, foto.getvalue(), foto.type)})
-                    if result:
-                        st.success(f"Fotografía almacenada: {foto.name}")
-        evidencias = call("GET", f"/capture/solicitudes/{by_request[seleccionado]}/evidencias") or []
-        if evidencias:
-            st.dataframe(evidencias, use_container_width=True, hide_index=True)
+    with files_tab:
+        module_flag("02 · EXPEDIENTES", "Consulta y completa tus solicitudes")
+        if solicitudes:
+            record_cards(
+                solicitudes, title_field="id", state_field="estado", limit=3,
+            )
+            with st.expander("Tabla de solicitudes registradas"):
+                st.dataframe(solicitudes, use_container_width=True, hide_index=True)
+            by_request = {
+                f"{item['id'][:8]} · {item['estado']} · {item['created_at'][:10]}": item["id"]
+                for item in solicitudes
+            }
+            seleccionado = st.selectbox(
+                "Solicitud para adjuntar fotos", list(by_request)
+            )
+            selected_request = next(
+                row for row in solicitudes if row["id"] == by_request[seleccionado]
+            )
+            project_names = {
+                p["id"]: p["nombre_proyecto"] for p in proyectos
+            }
+            render_request_panel(
+                selected_request, project_names,
+                title="Expediente de solicitud", detail=True,
+            )
+            render_stage_explorer(
+                selected_request.get("estado"), key="cl_request_stage",
+            )
+            module_flag("03 · EVIDENCIAS", "Documenta la solicitud")
+            fotos = st.file_uploader(
+                "Fotografías JPG o PNG (máximo 5 MB cada una)",
+                type=["jpg", "jpeg", "png"], accept_multiple_files=True,
+            )
+            if st.button("Adjuntar fotografías", type="primary"):
+                if not fotos:
+                    st.warning("Selecciona al menos una fotografía.")
+                else:
+                    for foto in fotos:
+                        if foto.size > 5 * 1024 * 1024:
+                            st.error(f"{foto.name}: supera los 5 MB.")
+                            continue
+                        result = call(
+                            "POST",
+                            f"/capture/solicitudes/{by_request[seleccionado]}/evidencias",
+                            files={
+                                "archivo": (foto.name, foto.getvalue(), foto.type)
+                            },
+                        )
+                        if result:
+                            st.success(f"Fotografía almacenada: {foto.name}")
+            evidencias = call(
+                "GET",
+                f"/capture/solicitudes/{by_request[seleccionado]}/evidencias",
+            ) or []
+            if evidencias:
+                with st.expander("Fotografías registradas", expanded=True):
+                    st.dataframe(
+                        evidencias, use_container_width=True, hide_index=True
+                    )
+        else:
+            empty_state(
+                "Aún no hay solicitudes",
+                "Radica una solicitud en la primera pestaña para empezar su seguimiento.",
+                icon="files",
+            )
+
 
 if client_page == "Mi panel":
     section_intro(
