@@ -192,3 +192,58 @@ def auth_form_heading() -> None:
 
 def auth_security_note() -> None:
     st.html('<p class="cl-auth-security">Acceso protegido mediante tu cuenta personal</p>')
+
+
+
+def record_cards(
+    rows: list[dict], *, title_field: str, detail_field: str = "",
+    state_field: str = "", limit: int = 3,
+) -> None:
+    """Accessible, informational record snapshots; original tables remain available."""
+    if not isinstance(rows, list) or not rows:
+        return
+    cards: list[str] = []
+    for row in rows[:max(1, min(limit, 6))]:
+        if not isinstance(row, dict):
+            continue
+        raw_title = row.get(title_field)
+        title = str(raw_title or "Registro sin título")
+        if title_field == "id" and len(title) > 8:
+            title = "#" + title[:8].upper()
+        detail = str(row.get(detail_field) or "") if detail_field else ""
+        status = str(row.get(state_field) or "") if state_field else ""
+        cards.append(
+            '<article class="cl-record-card">'
+            '<span class="cl-record-ident" aria-hidden="true"></span>'
+            f'<h4>{escape(title)}</h4>'
+            + (f'<p>{escape(detail)}</p>' if detail else '')
+            + (f'<span class="cl-record-status">{escape(status.replace("_", " "))}</span>'
+               if status else '')
+            + "</article>"
+        )
+    if cards:
+        st.html('<div class="cl-record-grid" aria-label="Resumen de registros">'
+                + "".join(cards) + '</div>')
+
+
+def empty_state(title: str, description: str, *, icon: str = "files") -> None:
+    """Presentational empty-state. Does not imply any record was created."""
+    st.html(
+        '<div class="cl-empty-state" role="status">'
+        f'<span class="cl-empty-icon">{icon_svg(icon, 24)}</span>'
+        f'<h3>{escape(title)}</h3>'
+        f'<p>{escape(description)}</p></div>'
+    )
+
+
+def journey_hint(label: str, title: str, details: str) -> None:
+    """Contextual workflow guidance, not a fabricated persisted event."""
+    st.html(
+        '<aside class="cl-journey-hint">'
+        '<span class="cl-journey-mark" aria-hidden="true">✳</span>'
+        '<div class="cl-journey-copy">'
+        f'<span>{escape(label)}</span>'
+        f'<strong>{escape(title)}</strong>'
+        f'<p>{escape(details)}</p></div>'
+        '</aside>'
+    )
