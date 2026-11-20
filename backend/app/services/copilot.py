@@ -157,6 +157,12 @@ async def answer_copilot(question: str, history: list[ChatMessage]) -> dict:
     except (KeyError, TypeError, ValueError) as exc:
         raise HTTPException(502, "La IA no pudo interpretar los datos del proyecto.") from exc
     if intent == "calculo":
+        # El extractor marca datos imprescindibles (p. ej. medidas de huecos).
+        # Nunca estimar silenciosamente una deducción que el usuario pidió calcular.
+        pending = str(parsed.get("faltante") or "").strip()
+        if pending:
+            return {"answer": pending[:400], "calculation": None,
+                    "model": get_settings().gemini_model}
         if not isinstance(params, dict):
             raise HTTPException(502, "Parámetros de cálculo incorrectos.")
         has_area = params.get("area_m2") is not None
