@@ -65,10 +65,12 @@ def calculate_paint(data: PaintInputs) -> dict:
         "descuento_m2": _round(data.descuento_m2),
         "area_neta_m2": _round(net),
         "manos": data.manos,
+        "manos_es_supuesto": "manos" not in data.model_fields_set,
         "rendimiento_m2_l_mano": _round(data.rendimiento_m2_l_mano),
-        "rendimiento_es_supuesto": data.rendimiento_m2_l_mano == Decimal("10"),
+        "rendimiento_es_supuesto": "rendimiento_m2_l_mano" not in data.model_fields_set,
         "consumo_base_litros": _round(base),
         "desperdicio_pct": _round(data.desperdicio_pct),
+        "desperdicio_es_supuesto": "desperdicio_pct" not in data.model_fields_set,
         "margen_litros": _round(excess),
         "litros_estimados": _round(total),
         "galones_us_estimados": _round(total / US_GALLON_LITERS),
@@ -78,17 +80,19 @@ def calculate_paint(data: PaintInputs) -> dict:
 def explain_calculation(result: dict) -> str:
     """Los números de la explicación provienen únicamente del motor matemático."""
     r = result
-    rendimiento = " (valor orientativo, no ficha técnica)" if r["rendimiento_es_supuesto"] else " (valor informado; comprobar ficha técnica)"
+    rendimiento = " (supuesto orientativo, no ficha técnica)" if r["rendimiento_es_supuesto"] else " (valor informado; comprobar ficha técnica)"
+    manos = " (supuesto orientativo)" if r["manos_es_supuesto"] else " (valor informado)"
+    margen = " (supuesto orientativo)" if r["desperdicio_es_supuesto"] else " (valor informado)"
     return (
         "**Estimación de pintura de tu proyecto**\n\n"
         f"- Área bruta: **{r['area_bruta_m2']} m²** "
         f"(paredes {r['paredes_m2']} m²; techo {r['techo_m2']} m²).\n"
         f"- Descuento de puertas/ventanas: **{r['descuento_m2']} m²**. "
         f"Área neta: **{r['area_neta_m2']} m²**.\n"
-        f"- Manos: **{r['manos']}**. Rendimiento: **{r['rendimiento_m2_l_mano']} m²/L por mano**{rendimiento}.\n"
+        f"- Manos: **{r['manos']}**{manos}. Rendimiento: **{r['rendimiento_m2_l_mano']} m²/L por mano**{rendimiento}.\n"
         f"- Consumo base = {r['area_neta_m2']} × {r['manos']} ÷ {r['rendimiento_m2_l_mano']} "
         f"= **{r['consumo_base_litros']} L**.\n"
-        f"- Margen de {r['desperdicio_pct']} %: **{r['margen_litros']} L**.\n\n"
+        f"- Margen de {r['desperdicio_pct']} %{margen}: **{r['margen_litros']} L**.\n\n"
         f"**Cantidad final estimada: {r['litros_estimados']} litros** "
         f"(aprox. {r['galones_us_estimados']} galones estadounidenses).\n\n"
         "El consumo real depende del fabricante, porosidad, sellado, preparación y aplicación. "
