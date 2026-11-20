@@ -67,3 +67,31 @@ que el frontend envía explícitamente. No se persisten conversaciones en Supaba
 La rama `feat/copiloto-ia-pintura` es independiente de
 `feat/base-plataforma-pintuco360`, que alimenta el despliegue público.
 La integración no será visible en producción hasta revisión y fusión deliberada.
+
+
+## Matriz de aceptación y desglose visual (fase 2)
+
+Pruebas automatizadas en `tests/test_copilot_acceptance.py`: diez escenarios
+con respuestas de extracción y orientación **simuladas**, no consultas reales
+a Google Gemini. Cubren pared rectangular, habitación, techo, aberturas,
+rendimiento informado, varias paredes, datos ausentes, puertas sin dimensiones,
+asesoría exterior y combinación de colores. Incluyen continuidad de contexto.
+Estas pruebas verifican la orquestación y la matemática, pero **no prueban**
+la fiabilidad del modelo real ni sustituyen una revisión de contenido por experto.
+
+El chat muestra una sección desplegable «Ver desglose del cálculo» con los
+valores numéricos retornados por la herramienta matemática del servidor.
+La explicación identifica cuándo el número de manos, rendimiento o margen
+son supuestos orientativos y cuándo fueron aportados en la conversación.
+Un valor explícito igual al predeterminado **no debe** marcarse como supuesto.
+
+Criterios pendientes de validación manual en producción con usuario autenticado:
+- Solicitar una recomendación de pintura interior y una de fachada exterior.
+- Pedir un cálculo con medidas, luego continuar con una aclaración.
+- Verificar el desglose y los supuestos, sin atribuirlos a un fabricante.
+- Revisar que humedad o fisuras no se describan como diagnósticos definitivos.
+- Probar una nueva conversación y el cambio a otra cuenta.
+- Comprobar diseño móvil, errores de conectividad y reintentos.
+
+El despliegue solo se considera aceptado cuando todas las verificaciones CI
+pasan y Render reporta la nueva versión `Live`.

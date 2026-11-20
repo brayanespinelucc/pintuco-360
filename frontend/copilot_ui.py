@@ -64,9 +64,10 @@ def _send(api_call, question: str, *, retry: bool = False) -> None:
     if isinstance(result, dict) and not result.get("_copilot_error"):
         answer = result.get("answer")
         if isinstance(answer, str) and answer.strip():
-            st.session_state["cl_copilot_history"].append(
-                {"role": "assistant", "content": answer[:6000]}
-            )
+            assistant_message = {"role": "assistant", "content": answer[:6000]}
+            if isinstance(result.get("calculation"), dict):
+                assistant_message["calculation"] = result["calculation"]
+            st.session_state["cl_copilot_history"].append(assistant_message)
             st.session_state["cl_copilot_history"] = st.session_state["cl_copilot_history"][-24:]
             return
 
@@ -110,6 +111,16 @@ def open_copilot(api_call) -> None:
                 avatar="👤" if message["role"] == "user" else "🎨",
             ):
                 st.markdown(message["content"], unsafe_allow_html=False)
+                if message["role"] == "assistant" and isinstance(message.get("calculation"), dict):
+                    calc = message["calculation"]
+                    with st.expander("Ver desglose del cálculo", expanded=False):
+                        st.metric("Pintura estimada", f"{calc['litros_estimados']:g} L")
+                        st.write(f"Área neta: **{calc['area_neta_m2']:g} m²**")
+                        st.write(f"Consumo base: **{calc['consumo_base_litros']:g} L**")
+                        st.caption(
+                            "Cálculo realizado por el motor matemático de COLORLINK, "
+                            "independiente de la generación de texto."
+                        )
 
     error = st.session_state.get("cl_copilot_error")
     if error:
