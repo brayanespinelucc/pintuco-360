@@ -11,6 +11,7 @@ from design import (
     premium_welcome, premium_login_heading, workspace_header,
 )
 from premium_components import record_gallery, step_intro
+from copilot_ui import open_copilot, prepare_chat
 from process_ui import (
     render_request_panel, render_stage_explorer,
     render_state_distribution, render_stepper, render_field_progress,
@@ -197,6 +198,8 @@ if not profile:
         st.rerun()
     st.stop()
 
+prepare_chat(profile["id"])
+
 with st.sidebar:
     brand()
     user_identity(
@@ -271,10 +274,15 @@ with st.sidebar:
                     st.rerun()
         st.caption("Solo para cuentas autorizadas. Los cambios quedan registrados.")
     st.divider()
+    if st.button("✦ Consultar copiloto IA", type="primary", use_container_width=True,
+                 key="cl_copilot_open_sidebar"):
+        open_copilot(call)
     st.toggle("Modo oscuro", key="cl_dark", help="Preferencia visual de esta sesión.")
     if st.button("Cerrar sesión", use_container_width=True):
         st.session_state.pop("access_token", None)
         st.session_state.pop("cl_page", None)
+        st.session_state.pop("cl_copilot_owner", None)
+        st.session_state.pop("cl_copilot_history", None)
         st.rerun()
     st.caption("COLORLINK · Gestión integral de proyectos")
 
