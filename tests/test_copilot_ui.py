@@ -92,3 +92,22 @@ def test_chat_is_limited_and_respects_history(monkeypatch):
     assert stored[0]["history"][-1]["content"] == "turno 19"
     assert state["cl_copilot_history"][-1]["role"] == "assistant"
     assert len(state["cl_copilot_history"]) <= 24
+
+
+def test_chat_preserves_auditable_calculation_details(monkeypatch):
+    ui = _ui_module()
+    state = {}
+    monkeypatch.setattr(ui.st, "session_state", state)
+    monkeypatch.setattr(ui.st, "spinner", lambda *args, **kwargs: nullcontext())
+    ui.prepare_chat("user-a")
+    calc = {
+        "litros_estimados": 2.2, "area_neta_m2": 10,
+        "consumo_base_litros": 2,
+    }
+
+    def fake_api(method, path, *, json, return_errors):
+        return {"answer": "Estimación: 2,2 litros.", "calculation": calc}
+
+    ui._send(fake_api, "Pared de 4 x 2,5 m")
+    assert state["cl_copilot_history"][-1]["role"] == "assistant"
+    assert state["cl_copilot_history"][-1]["calculation"] == calc
