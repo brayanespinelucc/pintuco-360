@@ -144,3 +144,26 @@ def test_missing_door_measurements_never_silently_deducted(monkeypatch):
     ))
     assert result["calculation"] is None
     assert "puerta" in result["answer"]
+
+
+def test_explicit_values_equal_to_defaults_are_not_mislabeled():
+    """User can explicitly choose 2 coats, 10 m²/L and 10% loss."""
+    from backend.app.services.copilot_math import explain_calculation
+    r = calculate_paint(PaintInputs(
+        area_m2=10, manos=2, rendimiento_m2_l_mano=10, desperdicio_pct=10,
+    ))
+    assert r["manos_es_supuesto"] is False
+    assert r["rendimiento_es_supuesto"] is False
+    assert r["desperdicio_es_supuesto"] is False
+    text = explain_calculation(r)
+    assert "supuesto orientativo" not in text
+    assert "valor informado" in text
+
+
+def test_missing_values_are_clearly_labeled_as_assumptions():
+    from backend.app.services.copilot_math import explain_calculation
+    r = calculate_paint(PaintInputs(area_m2=10))
+    assert r["manos_es_supuesto"] is True
+    assert r["rendimiento_es_supuesto"] is True
+    assert r["desperdicio_es_supuesto"] is True
+    assert explain_calculation(r).count("supuesto orientativo") == 3
