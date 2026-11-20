@@ -1,4 +1,8 @@
-"""Modal de chat premium, aislado de flujos transaccionales de COLORLINK."""
+"""Chat de COLORLINK: muestra siempre preguntas, errores y opciones de reintento.
+
+El historial vive exclusivamente en st.session_state y se separa por usuario.
+Las llamadas remotas utilizan la autenticación existente del portal.
+"""
 from __future__ import annotations
 
 import streamlit as st
@@ -17,6 +21,60 @@ def prepare_chat(user_id: str) -> None:
     if st.session_state.get("cl_copilot_owner") != user_id:
         st.session_state["cl_copilot_owner"] = user_id
         st.session_state["cl_copilot_history"] = []
+        st.session_state.pop("cl_copilot_error", None)
+        st.session_state.pop("cl_copilot_failed_prompt", None)
+
+
+def _reset_chat() -> None:
+    st.session_state["cl_copilot_history"] = []
+    st.session_state.pop("cl_copilot_error", None)
+    st.session_state.pop("cl_copilot_failed_prompt", None)
+
+
+def _send(api_call, question: str, *, retry: bool = False) -> None:
+    """Persist user message before remote call. Never mistake failures for answers."""
+    history = st.session_state.setdefault("cl_copilot_history", [])
+    st.session_state.pop("cl_copilot_error", None)
+    st.session_state.pop("cl_copilot_failed_prompt", None)
+    if retry:
+        # The user prompt is already in history, exactly once.
+        if not history or history[-1] != {"role": "user", "content": question}:
+            st.session_state["cl_copilot_error"] = "No se encontró el mensaje pendiente."
+            return
+        context = history[:-1]
+    else:
+        context = history.copy()
+        history.append({"role": "user", "content": question[:1500]})
+        st.session_state["cl_copilot_history"] = history[-24:]
+
+    payload = {
+        "message": question[:1500],
+        "history": [
+            {"role": item["role"], "content": item["content"][:2500]}
+            for item in context[-12:]
+        ],
+    }
+    try:
+        with st.spinner("COLORLINK está analizando tu consulta…"):
+            result = api_call("POST", "/copiloto/chat", json=payload, return_errors=True)
+    except Exception:
+        # No publicar detalles técnicos ni credenciales en pantalla.
+        result = {"_copilot_error": "No se pudo completar la consulta. Intenta de nuevo."}
+
+    if isinstance(result, dict) and not result.get("_copilot_error"):
+        answer = result.get("answer")
+        if isinstance(answer, str) and answer.strip():
+            st.session_state["cl_copilot_history"].append(
+                {"role": "assistant", "content": answer[:6000]}
+            )
+            st.session_state["cl_copilot_history"] = st.session_state["cl_copilot_history"][-24:]
+            return
+
+    error = result.get("_copilot_error") if isinstance(result, dict) else None
+    st.session_state["cl_copilot_error"] = str(
+        error or "El servicio no devolvió una respuesta válida."
+    )[:600]
+    st.session_state["cl_copilot_failed_prompt"] = question[:1500]
 
 
 @st.dialog("✦ COLORLINK · Copiloto inteligente", width="large")
@@ -40,10 +98,10 @@ def open_copilot(api_call) -> None:
                              use_container_width=True):
                     _send(api_call, label)
                     st.rerun(scope="fragment")
-    else:
-        if st.button("↻ Nueva conversación", key="cl_copilot_new_chat"):
-            st.session_state["cl_copilot_history"] = []
-            st.rerun(scope="fragment")
+    elif st.button("↻ Nueva conversación", key="cl_copilot_new_chat"):
+        _reset_chat()
+        st.rerun(scope="fragment")
+
     transcript = st.container(height=390, border=False)
     with transcript:
         for message in history:
@@ -51,29 +109,21 @@ def open_copilot(api_call) -> None:
                 "user" if message["role"] == "user" else "assistant",
                 avatar="👤" if message["role"] == "user" else "🎨",
             ):
-                # st.markdown usa el renderer seguro de Streamlit; no permitimos HTML.
                 st.markdown(message["content"], unsafe_allow_html=False)
+
+    error = st.session_state.get("cl_copilot_error")
+    if error:
+        st.error(error, icon="⚠️")
+        failed = st.session_state.get("cl_copilot_failed_prompt")
+        if failed and st.button("↻ Reintentar mensaje", key="cl_copilot_retry",
+                                use_container_width=True):
+            _send(api_call, failed, retry=True)
+            st.rerun(scope="fragment")
+
     prompt = st.chat_input("Escribe tu pregunta… (Shift + Enter para nueva línea)",
                            key="cl_copilot_prompt", max_chars=1500)
-    if prompt:
-        _send(api_call, prompt)
+    if prompt and prompt.strip():
+        _send(api_call, prompt.strip())
         st.rerun(scope="fragment")
+
     st.caption("Asesoría orientativa por IA; revisa fichas técnicas y condiciones reales de la obra.")
-
-
-def _send(api_call, question: str) -> None:
-    history = st.session_state.setdefault("cl_copilot_history", [])
-    transcript = [{"role": m["role"], "content": m["content"][:2500]}
-                  for m in history[-12:]]
-    with st.spinner("COLORLINK está analizando tu consulta…"):
-        result = api_call("POST", "/copiloto/chat", json={
-            "message": question[:1500],
-            "history": transcript,
-        })
-    if result and isinstance(result.get("answer"), str):
-        history.extend([
-            {"role": "user", "content": question[:1500]},
-            {"role": "assistant", "content": result["answer"]},
-        ])
-        # Mantener memoria acotada por sesión; jamás compartir entre identidades.
-        st.session_state["cl_copilot_history"] = history[-24:]
