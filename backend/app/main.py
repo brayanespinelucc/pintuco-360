@@ -10,6 +10,7 @@ from backend.app.api.review import router as review_router
 from backend.app.api.logistics import router as logistics_router
 from backend.app.api.field import router as field_router
 from backend.app.api.quality import router as quality_router
+from backend.app.api.copilot import router as copilot_router
 from backend.app.core.config import get_settings
 
 settings = get_settings()
@@ -34,6 +35,7 @@ app.include_router(review_router, prefix="/api/v1")
 app.include_router(logistics_router, prefix="/api/v1")
 app.include_router(field_router, prefix="/api/v1")
 app.include_router(quality_router, prefix="/api/v1")
+app.include_router(copilot_router, prefix="/api/v1")
 
 
 @app.get("/api/v1/health", tags=["Salud"])

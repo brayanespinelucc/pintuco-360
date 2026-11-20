@@ -142,7 +142,8 @@ def test_evaluator(browser):
     selector.press("ArrowDown")
     menu = page.get_by_role("listbox")
     expect(menu).to_be_visible(timeout=15000)
-    menu.get_by_text("Logística", exact=True).click()
+    expect(menu.get_by_text("Logística", exact=True)).to_be_visible(timeout=15000)
+    selector.press("Enter")
     expect(page.get_by_role(
         "button", name="Cambiar al rol seleccionado"
     )).to_be_visible(timeout=15000)
@@ -156,7 +157,8 @@ def test_evaluator(browser):
     selector.press("ArrowDown")
     menu = page.get_by_role("listbox")
     expect(menu).to_be_visible(timeout=15000)
-    menu.get_by_text("Control de calidad", exact=True).click()
+    expect(menu.get_by_text("Control de calidad", exact=True)).to_be_visible(timeout=15000)
+    selector.press("Enter")
     expect(page.get_by_role(
         "button", name="Cambiar al rol seleccionado"
     )).to_be_visible(timeout=15000)
