@@ -130,3 +130,17 @@ def test_rate_limit(monkeypatch):
         api.check_quota("same-user")
     assert err.value.status_code == 429
     api._usage.clear()
+
+
+def test_missing_door_measurements_never_silently_deducted(monkeypatch):
+    output = json.dumps({
+        "intent": "calculo",
+        "parametros": {"ancho_m": 4, "alto_m": 2.5, "manos": 2},
+        "faltante": "¿Cuánto miden la puerta y las ventanas que debo descontar?",
+    })
+    monkeypatch.setattr(service, "_generate", AsyncMock(return_value=output))
+    result = asyncio.run(service.answer_copilot(
+        "Descuenta una puerta y dos ventanas del total de pintura", []
+    ))
+    assert result["calculation"] is None
+    assert "puerta" in result["answer"]
