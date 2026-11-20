@@ -33,30 +33,49 @@ st.set_page_config(
 apply_design_system(bool(st.session_state.get("cl_dark", False)))
 
 
-def call(method, path, *, json=None, files=None, data=None):
+def call(method, path, *, json=None, files=None, data=None, return_errors=False):
+    """API client. The chatbot can request structured errors that survive dialog reruns."""
     token = st.session_state.get("access_token")
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     try:
         response = httpx.request(method, f"{API}/api/v1{path}", headers=headers,
                                  json=json, files=files, data=data, timeout=95)
     except httpx.RequestError:
-        st.error("No hay conexión con el backend FastAPI.")
+        detail = "No hay conexión con el backend FastAPI."
+        if return_errors:
+            return {"_copilot_error": detail}
+        st.error(detail)
         return None
     if response.status_code == 401:
         if path == "/auth/login":
-            st.error("No fue posible iniciar sesión. Revisa el correo y la contraseña.")
+            detail = "No fue posible iniciar sesión. Revisa el correo y la contraseña."
         else:
             st.session_state.pop("access_token", None)
-            st.error("Tu sesión expiró. Ingresa nuevamente.")
+            detail = "Tu sesión expiró. Ingresa nuevamente."
+        if return_errors:
+            return {"_copilot_error": detail}
+        st.error(detail)
         return None
     if response.is_error:
         try:
             detail = response.json().get("detail", "Error desconocido")
         except ValueError:
             detail = "El servidor devolvió una respuesta inválida."
-        st.error(f"Error ({response.status_code}): {detail}")
+        if not isinstance(detail, str):
+            detail = "El servidor devolvió un error inesperado."
+        message = f"Error ({response.status_code}): {detail}"
+        if return_errors:
+            return {"_copilot_error": message}
+        st.error(message)
         return None
-    return response.json()
+    try:
+        return response.json()
+    except ValueError:
+        detail = "El servidor devolvió una respuesta inválida."
+        if return_errors:
+            return {"_copilot_error": detail}
+        st.error(detail)
+        return None
 
 
 def foto_campo(path):
