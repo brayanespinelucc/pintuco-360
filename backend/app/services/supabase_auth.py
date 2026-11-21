@@ -1,4 +1,5 @@
 import httpx
+from urllib.parse import urlsplit
 from fastapi import HTTPException, status
 
 from backend.app.core.config import get_settings
@@ -81,6 +82,52 @@ async def get_profile(access_token: str) -> dict:
 
 
 
+def _email_redirect_url() -> str:
+    """Trusted, server-controlled return URL; never accept a caller-provided redirect."""
+    destination = get_settings().public_app_url.strip().rstrip("/")
+    parsed = urlsplit(destination)
+    if (
+        parsed.scheme != "https"
+        or not parsed.netloc
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+    ):
+        raise HTTPException(status_code=503, detail="La dirección pública de confirmación no está configurada correctamente.")
+    return destination
+
+
+async def resend_signup_confirmation(email: str) -> dict:
+    """Resend a new signup token with privacy-preserving response."""
+    url, key = _config()
+    destination = _email_redirect_url()
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            response = await client.post(
+                f"{url}/auth/v1/resend",
+                params={"redirect_to": destination},
+                headers={"apikey": key, "Content-Type": "application/json"},
+                json={"email": email, "type": "signup"},
+            )
+    except httpx.RequestError as exc:
+        raise HTTPException(
+            status_code=502, detail="No se pudo contactar el servicio de confirmación."
+        ) from exc
+    if response.status_code == 429:
+        raise HTTPException(
+            status_code=429, detail="Se alcanzó el límite de correos. Intenta nuevamente más tarde."
+        )
+    if response.status_code >= 500:
+        raise HTTPException(
+            status_code=502, detail="No fue posible reenviar el correo en este momento."
+        )
+    # Do not reveal if the account exists, is already confirmed, or is pending.
+    return {
+        "message": "Si la cuenta está pendiente de confirmación, recibirás un nuevo enlace en tu correo."
+    }
+
+
 async def signup_with_password(email: str, password: str, full_name: str) -> dict:
     """Public sign-up; the database trigger always assigns the lowest role."""
     url, key = _config()
@@ -88,6 +135,7 @@ async def signup_with_password(email: str, password: str, full_name: str) -> dic
         async with httpx.AsyncClient(timeout=15.0) as client:
             response = await client.post(
                 f"{url}/auth/v1/signup",
+                params={"redirect_to": _email_redirect_url()},
                 headers={"apikey": key, "Content-Type": "application/json"},
                 json={"email": email, "password": password,
                       "data": {"full_name": full_name}},

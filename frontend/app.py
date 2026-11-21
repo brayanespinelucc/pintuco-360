@@ -206,6 +206,34 @@ if not st.session_state.get("access_token"):
                 "Las nuevas cuentas comienzan como Cliente. "
                 "El acceso al selector de roles requiere autorización del administrador."
             )
+            with st.expander("¿El enlace de confirmación expiró?"):
+                st.caption(
+                    "Si ya registraste tu cuenta, solicita un nuevo enlace. "
+                    "No necesitas crear otra cuenta."
+                )
+                with st.form("resend_signup_confirmation"):
+                    resend_email = st.text_input(
+                        "Correo de la cuenta pendiente",
+                        key="resend_signup_email",
+                    )
+                    resend_requested = st.form_submit_button(
+                        "Reenviar correo de confirmación",
+                        use_container_width=True,
+                    )
+                if resend_requested:
+                    if "@" not in resend_email or "." not in resend_email.split("@")[-1]:
+                        st.warning("Introduce un correo electrónico válido.")
+                    else:
+                        with st.spinner("Solicitando correo de confirmación..."):
+                            resend_result = call(
+                                "POST", "/auth/resend-confirmation",
+                                json={"email": resend_email.strip().lower()},
+                            )
+                        if resend_result:
+                            st.success(resend_result["message"])
+                            st.caption(
+                                "Utiliza el enlace más reciente. Revisa también spam o correo no deseado."
+                            )
     with showcase:
         premium_welcome()
     st.stop()

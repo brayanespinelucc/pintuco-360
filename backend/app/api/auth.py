@@ -1,11 +1,13 @@
 from typing import Annotated
+from collections import defaultdict
+import time
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field, field_validator
 
 from backend.app.services.supabase_auth import (
-    get_profile, login_with_password, signup_with_password, change_evaluator_role,
+    get_profile, login_with_password, signup_with_password, resend_signup_confirmation, change_evaluator_role,
 )
 
 
@@ -44,6 +46,18 @@ class RegisterRequest(BaseModel):
         return value.strip() if isinstance(value, str) else value
 
 
+class ResendConfirmationRequest(BaseModel):
+    email: str = Field(min_length=5, max_length=254, pattern=r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
+
+
+class ResendConfirmationResponse(BaseModel):
+    message: str
+
+
+_resend_last_attempt: dict[str, float] = {}
+RESEND_COOLDOWN_SECONDS = 60
+
+
 class RegisterResponse(BaseModel):
     message: str
     requires_confirmation: bool
@@ -63,6 +77,22 @@ class EvaluatorRoleResponse(BaseModel):
 async def register(payload: RegisterRequest):
     # El servidor nunca acepta un rol enviado en el registro.
     return await signup_with_password(payload.email.lower(), payload.password, payload.full_name)
+
+
+@router.post("/resend-confirmation", response_model=ResendConfirmationResponse)
+async def resend_confirmation(payload: ResendConfirmationRequest):
+    # Lightweight process-local cooldown in addition to Supabase quotas.
+    # Multiple worker replicas require a central rate limiter.
+    email = payload.email.strip().lower()
+    now = time.monotonic()
+    if now - _resend_last_attempt.get(email, -1e12) < RESEND_COOLDOWN_SECONDS:
+        raise HTTPException(status_code=429, detail="Intenta reenviar el correo en un minuto.")
+    _resend_last_attempt[email] = now
+    if len(_resend_last_attempt) > 2000:
+        for address, last_attempt in list(_resend_last_attempt.items()):
+            if now - last_attempt > 86400:
+                _resend_last_attempt.pop(address, None)
+    return await resend_signup_confirmation(email)
 
 
 @router.post("/evaluator/role", response_model=EvaluatorRoleResponse)
