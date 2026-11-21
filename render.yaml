@@ -1,0 +1,26 @@
+# Render Blueprint: un solo Web Service público para Streamlit + FastAPI privado.
+# IMPORTANTE: conectar el repositorio GitHub privado y seleccionar esta rama.
+# Nunca escribir valores de claves en este archivo ni subir el .env local.
+services:
+  - type: web
+    name: colorlink-web
+    runtime: docker
+    plan: free
+    branch: feat/base-plataforma-pintuco360
+    dockerfilePath: ./Dockerfile.render
+    dockerContext: .
+    healthCheckPath: /_stcore/health
+    autoDeployTrigger: checksPass
+    envVars:
+      - key: APP_NAME
+        value: COLORLINK
+      - key: ENVIRONMENT
+        value: production
+      - key: SUPABASE_URL
+        value: https://btkvlpeqjccnjgsqxwix.supabase.co
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite
